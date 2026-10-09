@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import type { Category } from "../types/category";
-import { CATEGORY_COLORS } from "../types/category";
+import { CATEGORY_COLORS, SEPARATER_CATEGORY_BG_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
 import { SquarePen, X } from "lucide-react";
+import EditCategoryDialog from "./EditCategoryDialog";
 
 type CategoryCardProps = {
   category: Category;
@@ -10,7 +11,6 @@ type CategoryCardProps = {
   draggingCategoryId: number | null;
   setDraggingCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
 };
-
 
 function HeaderButton({ children, onClick }: { children: React.ReactNode, onClick: () => void }) {
   return (
@@ -39,54 +39,7 @@ export default function CategoryCard(
   CategoryCardProps
 ) {
 
-  const editDiaglogRef = useRef<HTMLDialogElement>(null);
-
-  const [editName, setEditName] = useState(category.name);
-  const [editColor, setEditColor] = useState(category.color);
-
-  function openEditDialog() {
-    setEditName(category.name);
-    setEditColor(category.color);
-
-    editDiaglogRef.current?.showModal();
-  }
-
-  function closeEditDialog() {
-    editDiaglogRef.current?.close();
-  }
-
-  async function saveCategory() {
-    if (editName === category.name) {
-      return;
-    }
-
-    setCategories((current) =>
-      current.map((otherCategory) => otherCategory.id == category.id
-        ? {...otherCategory, name: editName} : otherCategory)
-    );
-
-    const response = await fetch(`/api/categories/${category.id}`, {
-      method: "PATCH",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: editName
-      })
-    });
-    // TODO (maddie): deal with errors.
-    closeEditDialog();
-  }
-
-  async function deleteCategory() {
-    const response = await fetch(`/api/categories/${category.id}`, {
-      method: "DELETE",
-    });
-    // TODO (maddie): deal with errors.
-    setCategories((current) =>
-      current.filter((otherCategory) => otherCategory.id !== category.id));
-    closeEditDialog();
-  }
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   function handleDragStart(
     e: React.DragEvent<HTMLDivElement>,
@@ -199,32 +152,32 @@ export default function CategoryCard(
 
         {/* drag handle */}
         <div
-          className="
+          className={`
             flex h-8 cursor-grab items-center justify-center
-            border-b border-zinc-200 bg-black/5
+            border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} bg-black/5
             active:cursor-grabbing
-          "
+          `}
           title="Drag to move category"
         >
           <div className="flex gap-1">
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
-            <span className="h-1 w-1 rounded-full bg-zinc-400" />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
+            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
           </div>
         </div>
 
         {/* header */}
-        <div className="border-b border-zinc-400 pb-2 mt-2">
+        <div className={`border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} pb-2 mt-2`}>
           <div className="px-3 py-2 text-2xl">
             {category.name}
           </div>
         </div>
-        <div className="h-[60px] border-b border-zinc-400 flex items-center gap-2">
+        <div className={`h-[60px] border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} flex items-center gap-2`}>
           <HeaderButton onClick={() => {}}>+ Add Task</HeaderButton>
-          <HeaderButton onClick={openEditDialog}>
+          <HeaderButton onClick={() => setIsEditOpen(true)}>
             <SquarePen className="h-5 w-5" />
             <span>Edit</span>
           </HeaderButton>
@@ -234,75 +187,13 @@ export default function CategoryCard(
             Tasks goes here
         </div>
       </div>
-      <dialog
-        ref={editDiaglogRef}
-        className="
-          m-auto w-[400px] rounded-xl border border-zinc-300
-          bg-white p-0 shadow-xl
-        "
-      >
-        <div className="p-6">
-
-          <button
-            type="button"
-            onClick={closeEditDialog}
-            className="
-              absolute right-4 top-4
-              rounded-lg p-1.5
-              text-zinc-500
-              hover:bg-zinc-100 hover:text-zinc-800
-              cursor-pointer
-            "
-            aria-label="Close"
-          >
-            <X className="h-7 w-7" />
-          </button>
-
-          <h2 className="mb-6 text-2xl font-semibold flex items-center gap-3">
-            <SquarePen></SquarePen>
-            <span>Edit Category</span>
-          </h2>
-
-          {/* Name */}
-          <div className="mb-5">
-            <label
-              htmlFor={`category-name-${category.id}`}
-              className="mb-2 block text-xl font-medium text-zinc-700">
-              Name
-            </label>
-            <input
-              id={`category-name-${category.id}`}
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              maxLength={100}
-              className="
-                w-full rounded-lg border border-zinc-300 text-lg
-                px-3 py-2 outline-none
-                focus:border-blue-300
-              "
-            />
-          </div>
-
-          <div className="flex justify-between">
-            <button
-              type="button"
-              onClick={saveCategory}
-              className="text-lg rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
-            >
-              Save
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteCategory}
-              className="text-lg rounded-lg bg-red-400 px-4 py-2 text-white hover:bg-red-500 cursor-pointer"
-            >
-              Delete
-            </button>
-          </div>
-
-        </div>
-      </dialog>
+      {isEditOpen && (
+        <EditCategoryDialog
+          category={category}
+          setCategories={setCategories}
+          onClose={() => setIsEditOpen(false)}
+        />
+      )}
     </>
-  )
+  );
 }
