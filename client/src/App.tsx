@@ -13,7 +13,6 @@ function App() {
       const response = await fetch("/api/categories");
       // TODO (maddie): deal with errors
       const data: Category[] = await response.json();
-      console.log("typ");
       setCategories(data);
     }
     fetchCategories();
@@ -25,7 +24,7 @@ function App() {
     });
     // TODO (maddie): deal with errors.
     const newCategory: Category = await response.json();
-    setCategories([...categories, newCategory]);
+    setCategories((current) => [...current, newCategory]);
   }
 
   return (
@@ -59,4 +58,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

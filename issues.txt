@@ -1,0 +1,1 @@
+1. You can drag the categories from anywhere. They are only meant to be draggable from the handle up top.

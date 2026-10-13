@@ -16,7 +16,7 @@ export const SEPARATER_CATEGORY_BG_COLORS = {
   GREEN: "bg-zinc-400",
   YELLOW: "bg-zinc-400",
   PURPLE: "bg-zinc-600",
-  ORANGE: "bg-zinc-400",
+  ORANGE: "bg-zinc-500",
   WHITE: "bg-zinc-400",
   GRAY: "bg-zinc-400"
 };
@@ -27,7 +27,7 @@ export const SEPARATER_CATEGORY_BORDER_COLORS = {
   GREEN: "border-zinc-400",
   YELLOW: "border-zinc-400",
   PURPLE: "border-zinc-600",
-  ORANGE: "border-zinc-400",
+  ORANGE: "border-zinc-500",
   WHITE: "border-zinc-400",
   GRAY: "border-zinc-400"
 };

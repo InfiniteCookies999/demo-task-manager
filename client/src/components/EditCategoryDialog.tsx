@@ -18,6 +18,9 @@ export default function EditCategoryDialog(
   EditCategoryDialogProps
 ) {
 
+  // TODO (maddie): sometimes when this is opened up it the exit button has a weird
+  // red border.
+
   const [editName, setEditName] = useState(category.name);
   const [editColor, setEditColor] = useState(category.color);
 
@@ -133,14 +136,16 @@ export default function EditCategoryDialog(
             {
             (Object.keys(CATEGORY_COLORS) as (keyof typeof CATEGORY_COLORS)[])
               .map((color) => (
-                <button className={
-                  `w-9 h-9 ${CATEGORY_COLORS[color]} rounded-md border
-                  ${
-                    editColor === color
-                      ? "border-blue-400 ring-2 ring-blue-400"
-                      : "border-zinc-300 hover:border-zinc-500"
-                  }
-                  `}
+                <button
+                  key={color}
+                  className={
+                    `w-9 h-9 ${CATEGORY_COLORS[color]} rounded-md border
+                    ${
+                      editColor === color
+                        ? "border-blue-400 ring-2 ring-blue-400"
+                        : "border-zinc-300 hover:border-zinc-500"
+                    }
+                    `}
                   onClick={() => setEditColor(color)}
                   >
                 </button>

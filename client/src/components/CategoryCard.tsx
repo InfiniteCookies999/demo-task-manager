@@ -1,8 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BG_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
-import { SquarePen, X } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
+import type { Task } from "../types/task";
+import EditTaskDialog from "./EditTaskDialog";
 
 type CategoryCardProps = {
   category: Category;
@@ -39,7 +41,11 @@ export default function CategoryCard(
   CategoryCardProps
 ) {
 
+  const [tasks, setTasks] = useState<Task[]>([]);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
+  const [editTask, setEditTask] = useState<Task | null>(null);
 
   function handleDragStart(
     e: React.DragEvent<HTMLDivElement>,
@@ -86,7 +92,6 @@ export default function CategoryCard(
   }
 
   async function updateCategoryOrder(categories: Category[]) {
-    console.log("updating categories order");
     const response = await fetch(`/api/categories/reorder`, {
       method: "PATCH",
       headers: {
@@ -133,6 +138,32 @@ export default function CategoryCard(
     updateCategoryOrder(updated);
   }
 
+  useEffect(() => {
+    async function fetchTasks() {
+      const response = await fetch(`/api/tasks?categoryId=${category.id}`);
+      // TODO (maddie): deal with errors
+      const tasks: Task[] = await response.json();
+      setTasks(tasks);
+    }
+    fetchTasks();
+  }, [category.id]);
+
+  async function addTask() {
+    const response = await fetch("/api/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        categoryId: category.id,
+        name: "New Task"
+      })
+    });
+    // TODO (maddie): error handling
+    const newTask: Task = await response.json();
+    setTasks((current) => [...current, newTask]);
+  }
+
   return (
     <>
       <div
@@ -145,7 +176,7 @@ export default function CategoryCard(
           }
         draggable
         onDragStart={(e) => handleDragStart(e, category.id)}
-        onDragEnd={(e) => setDraggingCategoryId(null)}
+        onDragEnd={() => setDraggingCategoryId(null)}
         onDragOver={(e) => handleDragOver(e)}
         onDrop={(e) => handleDrop(e, category.id)}
         >
@@ -176,15 +207,30 @@ export default function CategoryCard(
           </div>
         </div>
         <div className={`h-[60px] border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} flex items-center gap-2`}>
-          <HeaderButton onClick={() => {}}>+ Add Task</HeaderButton>
+          <HeaderButton onClick={addTask}>+ Add Task</HeaderButton>
           <HeaderButton onClick={() => setIsEditOpen(true)}>
             <SquarePen className="h-5 w-5" />
             <span>Edit</span>
           </HeaderButton>
         </div>
         {/* task drop area*/}
-        <div className="min-h-100 p-4">
-            Tasks goes here
+        <div className="min-h-100 p-4 flex flex-col gap-2">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="
+                  bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 p-4 flex justify-between text-lg">
+                <span>{task.name}</span>
+                <SquarePen
+                  className="cursor-pointer hover:bg-sky-200 rounded-lg shrink-0"
+                  onClick={() => {
+                    setEditTask(task);
+                    setIsTaskEditOpen(true);
+                  }}
+                  >
+                </SquarePen>
+              </div>
+            ))}
         </div>
       </div>
       {isEditOpen && (
@@ -193,6 +239,15 @@ export default function CategoryCard(
           setCategories={setCategories}
           onClose={() => setIsEditOpen(false)}
         />
+      )}
+      {isTaskEditOpen && editTask && (
+        <EditTaskDialog
+          task={editTask}
+          setTasks={setTasks}
+          onClose={() => {
+            setIsTaskEditOpen(false);
+            setEditTask(null);
+          }}/>
       )}
     </>
   );
