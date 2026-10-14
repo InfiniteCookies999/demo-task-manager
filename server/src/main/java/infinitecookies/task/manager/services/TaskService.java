@@ -8,7 +8,9 @@ import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -25,13 +27,11 @@ public class TaskService {
 
     public TaskResponse createTask(String sessionId, CreateTaskRequest request) {
 
-        // TODO (maddie): better error handling.
+        Category category = categoryRepository.findByIdAndSessionId(request.categoryId(), sessionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
         // This is fine the user would have to create/delete over 2 billion times.
         int nextPosition = (int) taskRepository.countBySessionIdAndCategoryId(sessionId, request.categoryId());
-
-        Category category = categoryRepository.findByIdAndSessionId(request.categoryId(), sessionId)
-            .orElseThrow();
 
         Task task = new Task();
         task.setSessionId(sessionId);
@@ -52,8 +52,8 @@ public class TaskService {
 
     @Transactional
     public void updateTask(Long id, String sessionId, TaskUpdateRequest request) {
-        // TODO (maddie): better error handling.
-        Task task = taskRepository.findByIdAndSessionId(id, sessionId).orElseThrow();
+        Task task = taskRepository.findByIdAndSessionId(id, sessionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
 
         if (request.name() != null) {
             task.setName(request.name());
@@ -67,6 +67,17 @@ public class TaskService {
 
     @Transactional
     public void deleteTask(Long id, String sessionId) {
+        Task task = taskRepository.findByIdAndSessionId(id, sessionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+        long categoryId = task.getCategory().getId();
+
         taskRepository.deleteByIdAndSessionId(id, sessionId);
+
+        // Re-normalizing the positions.
+        List<Task> tasks = taskRepository
+            .findAllBySessionIdAndCategoryIdOrderByPositionAsc(sessionId, categoryId);
+        for (int i= 0; i < tasks.size(); i++) {
+            tasks.get(i).setPosition(i);
+        }
     }
 }

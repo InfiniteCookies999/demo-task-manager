@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
-import { SquarePen } from "lucide-react";
+import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
 import type { Task } from "../types/task";
 import EditTaskDialog from "./EditTaskDialog";
+import useApiError from "../hooks/apiError";
+import { AppContext, useAppContext } from "../api/AppContext";
+import { apiFetch } from "../api/apiFetch";
 
 type CategoryCardProps = {
   category: Category;
@@ -14,15 +17,18 @@ type CategoryCardProps = {
   setDraggingCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
 };
 
-function HeaderButton({ children, onClick }: { children: React.ReactNode, onClick: () => void }) {
+function HeaderButton(
+  { className, children, onClick }: { className?: string, children: React.ReactNode, onClick: () => void }
+) {
   return (
     <button
-        className="rounded-lg border border-zinc-300 bg-zinc-200 px-3 py-1
-                    text-lg cursor-pointer flex items-center gap-2
+        className={`rounded-lg border border-zinc-300 bg-zinc-200 px-3 py-1
+                    text-lg cursor-pointer
           transition
             hover:bg-sky-200
             hover:border-sky-300
-        "
+          ${className}
+        `}
         onClick={onClick}
         >
         {children}
@@ -41,11 +47,51 @@ export default function CategoryCard(
   CategoryCardProps
 ) {
 
+  const { handleError } = useAppContext();
+
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
+
+  // Load tasks for the category
+  useEffect(() => {
+    async function fetchTasks() {
+      try {
+        const response = await fetch(`/api/tasks?categoryId=${category.id}`);
+        const tasks: Task[] = await response.json();
+        setTasks(tasks);
+      } catch (err) {
+        handleError(err);
+      }
+    }
+    fetchTasks();
+  }, [category.id]);
+
+
+  async function addTask() {
+    try {
+      const response = await apiFetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          categoryId: category.id,
+          name: "New Task"
+        })
+      });
+      const newTask: Task = await response.json();
+      setTasks((current) => [...current, newTask]);
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+
+  // Drag and drop functionality.
+  // ----------------------------------
 
   function handleDragStart(
     e: React.DragEvent<HTMLDivElement>,
@@ -92,18 +138,21 @@ export default function CategoryCard(
   }
 
   async function updateCategoryOrder(categories: Category[]) {
-    const response = await fetch(`/api/categories/reorder`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        entries: categories.map(({ id, position }) => ({
-          id, position
-        }))
-      })
-    });
-    // TODO (maddie): handle errors
+    try {
+      await apiFetch(`/api/categories/reorder`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          entries: categories.map(({ id }) => ({
+            id
+          }))
+        })
+      });
+    } catch (err) {
+      handleError(err);
+    }
   }
 
   function handleDrop(
@@ -138,31 +187,6 @@ export default function CategoryCard(
     updateCategoryOrder(updated);
   }
 
-  useEffect(() => {
-    async function fetchTasks() {
-      const response = await fetch(`/api/tasks?categoryId=${category.id}`);
-      // TODO (maddie): deal with errors
-      const tasks: Task[] = await response.json();
-      setTasks(tasks);
-    }
-    fetchTasks();
-  }, [category.id]);
-
-  async function addTask() {
-    const response = await fetch("/api/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        categoryId: category.id,
-        name: "New Task"
-      })
-    });
-    // TODO (maddie): error handling
-    const newTask: Task = await response.json();
-    setTasks((current) => [...current, newTask]);
-  }
 
   return (
     <>
@@ -188,14 +212,17 @@ export default function CategoryCard(
           </div>
         </div>
         <div className={`h-[60px] border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} flex items-center gap-2`}>
-          <HeaderButton onClick={addTask}>+ Add Task</HeaderButton>
-          <HeaderButton onClick={() => setIsEditOpen(true)}>
-            <SquarePen className="h-5 w-5" />
+          <HeaderButton className="flex items-center gap-1" onClick={addTask}>
+            <Plus className="w-5 h-5"/>
+            <span>Add Task</span>
+          </HeaderButton>
+          <HeaderButton className="flex items-center gap-2" onClick={() => setIsEditOpen(true)}>
+            <SquarePen className="w-5 h-5" />
             <span>Edit</span>
           </HeaderButton>
         </div>
         {/* task drop area*/}
-        <div className="min-h-100 p-4 flex flex-col gap-2">
+        <div className="p-4 flex flex-col gap-2">
             {tasks.map((task) => (
               <div
                 key={task.id}

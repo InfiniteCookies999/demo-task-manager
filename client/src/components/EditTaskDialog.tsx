@@ -4,6 +4,8 @@ import type { Task } from "../types/task";
 import RichTexEditor from "./RichTextEditor";
 import type { SerializedEditorState } from "lexical";
 import DeleteCollapsable from "./DeleteCollapsable";
+import { useAppContext } from "../api/AppContext";
+import { apiFetch } from "../api/apiFetch";
 
 type EditTaskDialogProps = {
   task: Task,
@@ -20,7 +22,7 @@ export default function EditTaskDialog(
   EditTaskDialogProps
 ) {
 
-  console.log("TASK: " + task.description);
+  const { handleError } = useAppContext();
 
   const [editName, setEditName] = useState(task.name);
   const originalDescriptionRef = useRef<string | null>(
@@ -70,17 +72,21 @@ export default function EditTaskDialog(
         ? {...otherTask, name: editName} : otherTask)
     );
 
-    const response = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: editName,
-        description: description
-      })
-    });
-    // TODO (maddie): deal with errors.
+    try {
+      await apiFetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editName,
+          description: description
+        })
+      });
+    } catch (err) {
+      handleError(err);
+    }
+
     close();
   }
 
@@ -89,12 +95,16 @@ export default function EditTaskDialog(
       return;
     }
 
-    const response = await fetch(`/api/tasks/${task.id}`, {
-      method: "DELETE",
-    });
-    // TODO (maddie): deal with errors.
-    setTasks((current) =>
-      current.filter((otherTask) => otherTask.id !== task.id));
+    try {
+      await apiFetch(`/api/tasks/${task.id}`, {
+        method: "DELETE",
+      });
+      setTasks((current) =>
+        current.filter((otherTask) => otherTask.id !== task.id));
+    } catch (err) {
+      handleError(err);
+    }
+
     close();
   }
 

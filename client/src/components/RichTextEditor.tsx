@@ -5,7 +5,6 @@ import { useExtensionDependency } from "@lexical/react/useExtensionComponent";
 import { useSignalValue } from "@lexical/react/useExtensionSignalValue";
 import { RichTextExtension } from "@lexical/rich-text";
 import { EditorStateExtension } from '@lexical/extension';
-import { OverflowNode } from "@lexical/overflow";
 
 import {
   defineExtension,

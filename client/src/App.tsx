@@ -2,40 +2,57 @@ import { useEffect, useState } from "react";
 import type { Category } from "./types/category";
 import ActionButton from "./components/ActionButton";
 import CategoryCard from "./components/CategoryCard";
+import { Plus } from "lucide-react";
+import { apiFetch } from "./api/apiFetch";
+import ErrorAlert from "./components/ErrorAlert";
+import useApiError from "./hooks/apiError";
+import { AppContext } from "./api/AppContext";
+
 
 function App() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
+  const { error, handleError } = useApiError();
 
   useEffect(() => {
     async function fetchCategories() {
-      const response = await fetch("/api/categories");
-      // TODO (maddie): deal with errors
-      const data: Category[] = await response.json();
-      setCategories(data);
+      try {
+        const response = await apiFetch("/api/categories");
+        const categories: Category[] = await response.json();
+        setCategories(categories);
+      } catch (err) {
+        handleError(err);
+      }
     }
     fetchCategories();
   }, []);
 
   async function createCategory() {
-    const response = await fetch("/api/categories", {
-      method: "POST"
-    });
-    // TODO (maddie): deal with errors.
-    const newCategory: Category = await response.json();
-    setCategories((current) => [...current, newCategory]);
+    try {
+      const response = await apiFetch("/api/categories", {
+        method: "POST"
+      });
+      const newCategory: Category = await response.json();
+      setCategories((current) => [...current, newCategory]);
+    } catch (err) {
+      handleError(err);
+    }
   }
 
   return (
-    <main className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <AppContext.Provider value={{handleError}}>
+      <main className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
 
         <div className="border-b border-zinc-300 bg-slate-50 px-8 py-6">
           <div className="max-w-5xl">
             <div className="flex gap-3">
-              <ActionButton name="+ Create Category" onClick={createCategory}></ActionButton>
-              <ActionButton name="Invite" onClick={() => {}}></ActionButton>
-              <ActionButton name="Change Background" onClick={() => {}}></ActionButton>
+              <ActionButton className="flex items-center gap-2" onClick={createCategory}>
+                <Plus className="w-5 h-5"/>
+                <span>Create Category</span>
+              </ActionButton>
+              <ActionButton onClick={() => {}}>Invite</ActionButton>
+              <ActionButton onClick={() => {}}>Change Background</ActionButton>
             </div>
           </div>
         </div>
@@ -54,8 +71,10 @@ function App() {
           ))}
         </div>
 
+        <ErrorAlert error={error}/>
       </main>
-  )
+    </AppContext.Provider>
+  );
 }
 
 export default App;

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { CATEGORY_COLORS, type Category } from "../types/category";
 import { SquarePen, X, ChevronDown } from "lucide-react";
 import DeleteCollapsable from "./DeleteCollapsable";
+import { useAppContext } from "../api/AppContext";
+import { apiFetch } from "../api/apiFetch";
 
 
 type EditCategoryDialogProps = {
@@ -21,6 +23,8 @@ export default function EditCategoryDialog(
 
   // TODO (maddie): sometimes when this is opened up it the exit button has a weird
   // red border.
+
+  const { handleError } = useAppContext();
 
   const [editName, setEditName] = useState(category.name);
   const [editColor, setEditColor] = useState(category.color);
@@ -51,17 +55,20 @@ export default function EditCategoryDialog(
         ? {...otherCategory, name: editName, color: editColor} : otherCategory)
     );
 
-    const response = await fetch(`/api/categories/${category.id}`, {
-      method: "PATCH",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: editName,
-        color: editColor
-      })
-    });
-    // TODO (maddie): deal with errors.
+    try {
+      await apiFetch(`/api/categories/${category.id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editName,
+          color: editColor
+        })
+      });
+    } catch (err) {
+      handleError(err);
+    }
     close();
   }
 
@@ -70,12 +77,16 @@ export default function EditCategoryDialog(
       return;
     }
 
-    const response = await fetch(`/api/categories/${category.id}`, {
-      method: "DELETE",
-    });
-    // TODO (maddie): deal with errors.
-    setCategories((current) =>
-      current.filter((otherCategory) => otherCategory.id !== category.id));
+    try {
+      await apiFetch(`/api/categories/${category.id}`, {
+        method: "DELETE",
+      });
+      setCategories((current) =>
+        current.filter((otherCategory) => otherCategory.id !== category.id));
+    } catch (err) {
+      handleError(err);
+    }
+
     close();
   }
 

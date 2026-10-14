@@ -7,14 +7,17 @@ import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class CategoryService {
+
+    private static final long MAX_CATEGORIES = 30;
 
     private final CategoryRepository repository;
 
@@ -24,14 +27,16 @@ public class CategoryService {
 
     public CategoryResponse createCategory(String sessionId) {
 
-        // This is fine the user would have to create/delete over 2 billion times.
-        int nextPosition = (int) repository.countBySessionId(sessionId);
+        long count = repository.countBySessionId(sessionId);
+        if (count >= MAX_CATEGORIES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hit category limit");
+        }
 
         Category category = new Category();
         category.setName("Untitled");
         category.setColor(CategoryColor.GRAY);
         category.setSessionId(sessionId);
-        category.setPosition(nextPosition);
+        category.setPosition((int) count);
         repository.save(category);
         return CategoryResponse.fromCategory(category);
     }
@@ -45,8 +50,9 @@ public class CategoryService {
 
     @Transactional
     public void updateCategory(Long id, String sessionId, CategoryUpdateRequest request) {
-        // TODO (maddie): better error handling.
-        Category category = repository.findByIdAndSessionId(id, sessionId).orElseThrow();
+
+        Category category = repository.findByIdAndSessionId(id, sessionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
         if (request.name() != null) {
             category.setName(request.name());
@@ -59,37 +65,38 @@ public class CategoryService {
     }
 
     @Transactional
-    public void deleteCategory(Long id, String sessionId) {
-        repository.deleteByIdAndSessionId(id, sessionId);
-    }
-
-    @Transactional
     public void reorderCategories(String sessionId, CategoryReorderRequest request) {
-        // TODO (maddie): better error handling.
 
         List<CategoryReorderRequest.Entry> entries = request.entries();
 
-        int previousPosition = -1;
-        Set<Long> ids = new HashSet<>();
+        List<Category> categories = new ArrayList<>();
         for (CategoryReorderRequest.Entry entry : entries) {
-            if (!ids.add(entry.id())) {
-                throw new IllegalArgumentException("Duplicate category ID");
-            }
-            if (entry.position() < 0) {
-                throw new IllegalArgumentException("Positions must be non-negative");
-            }
-
-            // Positions must be strictly increasing
-            if (entry.position() <= previousPosition) {
-                throw new IllegalArgumentException(
-                    "Category positions must be strictly increasing"
-                );
-            }
-            previousPosition = entry.position();
-
             Category category = repository.findByIdAndSessionId(entry.id(), sessionId)
-                .orElseThrow();
-            category.setPosition(entry.position());
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+            categories.add(category);
+        }
+
+        long count = repository.countBySessionId(sessionId);
+        if (categories.size() != count) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must specify the re-ordering for all categores");
+        }
+
+        for (int i = 0; i < categories.size(); i++) {
+            categories.get(i).setPosition(i);
+        }
+    }
+
+    @Transactional
+    public void deleteCategory(Long id, String sessionId) {
+        int deleted = repository.deleteByIdAndSessionId(id, sessionId);
+        if (deleted == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
+        }
+
+        // Re-normalizing the positions.
+        List<Category> categories = repository.findAllBySessionIdOrderByPositionAsc(sessionId);
+        for (int i= 0; i < categories.size(); i++) {
+            categories.get(i).setPosition(i);
         }
     }
 }

@@ -3,5 +3,5 @@ package infinitecookies.task.manager.models.dto;
 import java.util.List;
 
 public record CategoryReorderRequest(List<Entry> entries) {
-    public record Entry(Long id, int position) {}
+    public record Entry(Long id) {}
 }
