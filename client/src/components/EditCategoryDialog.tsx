@@ -51,7 +51,7 @@ export default function EditCategoryDialog(
     }
 
     setCategories((current) =>
-      current.map((otherCategory) => otherCategory.id == category.id
+      current.map((otherCategory) => otherCategory.id === category.id
         ? {...otherCategory, name: editName, color: editColor} : otherCategory)
     );
 

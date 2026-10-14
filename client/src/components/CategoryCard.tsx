@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
-import { Plus, SquarePen } from "lucide-react";
+import { Circle, CircleCheck, Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
 import type { Task } from "../types/task";
 import EditTaskDialog from "./EditTaskDialog";
@@ -56,7 +56,8 @@ export default function CategoryCard(
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [editTask, setEditTask] = useState<Task | null>(null)
+
 
   // Load tasks for the category
   useEffect(() => {
@@ -87,6 +88,26 @@ export default function CategoryCard(
       });
       const newTask: Task = await response.json();
       setTasks((current) => [...current, newTask]);
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  async function markTaskCompleted(taskId: number, completed: boolean) {
+    try {
+      const newCompleted = !completed;
+      await apiFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          completed: newCompleted
+        })
+      });
+      setTasks((current) =>
+        current.map((otherTask) => otherTask.id == taskId
+          ? { ...otherTask, completed: newCompleted } : otherTask))
     } catch (err) {
       handleError(err);
     }
@@ -192,7 +213,6 @@ export default function CategoryCard(
     updateCategoryOrder(updated);
   }
 
-
   const isDragTarget = dropTargetCategoryId === category.id &&
                        draggingCategoryId !== null &&
                        draggingCategoryId !== category.id;
@@ -250,7 +270,25 @@ export default function CategoryCard(
                 key={task.id}
                 className="
                   bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 p-4 flex justify-between text-lg">
-                <span>{task.name}</span>
+
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    title={task.completed ? "Mark Not Complete" : "Mark Complete"}
+                    aria-label="Mark Complete"
+                    className="shrink-0 cursor-pointer"
+                    onClick={() => markTaskCompleted(task.id, task.completed)}
+                  >
+                    {
+                      task.completed
+                        ? <CircleCheck className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer fill-emerald-300"/>
+                        : <Circle className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer"/>
+                    }
+                  </button>
+
+                  <span className={`min-w-0 break-words ${task.completed ? "text-[#777]" : ""}`}>{task.name}</span>
+                </div>
+
                 <SquarePen
                   className="cursor-pointer hover:bg-sky-200 rounded-lg shrink-0"
                   onClick={() => {

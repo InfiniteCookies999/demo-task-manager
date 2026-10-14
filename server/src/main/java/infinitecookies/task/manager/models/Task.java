@@ -13,7 +13,7 @@ import tools.jackson.databind.JsonNode;
 @Setter
 public class Task {
 
-    public static final int MAX_NAME_LENGTH = 40;
+    public static final int MAX_NAME_LENGTH = 100;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

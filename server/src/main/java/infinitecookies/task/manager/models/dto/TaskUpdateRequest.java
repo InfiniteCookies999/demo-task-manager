@@ -10,5 +10,7 @@ public record TaskUpdateRequest(
     String name,
 
     @ValidTaskDescription
-    JsonNode description
+    JsonNode description,
+
+    Boolean completed
 ) {}

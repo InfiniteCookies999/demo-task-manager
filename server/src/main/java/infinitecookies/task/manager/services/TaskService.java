@@ -61,6 +61,9 @@ public class TaskService {
         if (request.description() != null) {
             task.setDescription(request.description());
         }
+        if (request.completed() != null) {
+            task.setCompleted(request.completed());
+        }
 
         taskRepository.save(task);
     }

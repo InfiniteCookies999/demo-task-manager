@@ -32,7 +32,7 @@ public class TasksController {
 
     @PatchMapping("/{id}")
     public void updateTask(@PathVariable Long id, HttpSession session,
-                               @RequestBody TaskUpdateRequest request) {
+                           @RequestBody TaskUpdateRequest request) {
         service.updateTask(id, session.getId(), request);
     }
 
