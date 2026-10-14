@@ -28,7 +28,7 @@ function App() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-8">
+    <main className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
 
         <div className="border-b border-zinc-300 bg-slate-50 px-8 py-6">
           <div className="max-w-5xl">

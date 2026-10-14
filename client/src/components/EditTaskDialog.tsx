@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task } from "../types/task";
 import RichTexEditor from "./RichTextEditor";
 import type { SerializedEditorState } from "lexical";
+import DeleteCollapsable from "./DeleteCollapsable";
 
 type EditTaskDialogProps = {
   task: Task,
@@ -83,6 +84,20 @@ export default function EditTaskDialog(
     close();
   }
 
+  async function deleteTask(deleteName: string) {
+    if (deleteName !== editName) {
+      return;
+    }
+
+    const response = await fetch(`/api/tasks/${task.id}`, {
+      method: "DELETE",
+    });
+    // TODO (maddie): deal with errors.
+    setTasks((current) =>
+      current.filter((otherTask) => otherTask.id !== task.id));
+    close();
+  }
+
   // TODO (maddie): need to put a character limit on the description. because it may be too
   // difficult to enforce in the text box itself it could go as a check when save is pressed.
   return (
@@ -145,22 +160,21 @@ export default function EditTaskDialog(
         </div>
 
         {/* Save/Delete buttons */}
-        <div className="flex justify-between">
-          <button
-            type="button"
-            className="text-lg rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
-            onClick={saveTask}
-          >
-            Save
-          </button>
+        <button
+          type="button"
+          className="text-xl w-30 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
+          onClick={saveTask}
+        >
+          Save
+        </button>
 
-          <button
-            type="button"
-            className="text-lg rounded-lg bg-red-400 px-4 py-2 text-white hover:bg-red-500 cursor-pointer"
-          >
-            Delete
-          </button>
-        </div>
+        <DeleteCollapsable
+          className="mt-8"
+          itemId={task.id}
+          originalName={task.name}
+          onDelete={(deleteName) => deleteTask(deleteName)}
+        />
+
       </div>
     </dialog>
   );

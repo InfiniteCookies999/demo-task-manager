@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORY_COLORS, type Category } from "../types/category";
-import { SquarePen, X } from "lucide-react";
+import { SquarePen, X, ChevronDown } from "lucide-react";
+import DeleteCollapsable from "./DeleteCollapsable";
 
 
 type EditCategoryDialogProps = {
@@ -64,7 +65,11 @@ export default function EditCategoryDialog(
     close();
   }
 
-  async function deleteCategory() {
+  async function deleteCategory(deleteName: string) {
+    if (deleteName !== editName) {
+      return;
+    }
+
     const response = await fetch(`/api/categories/${category.id}`, {
       method: "DELETE",
     });
@@ -79,7 +84,7 @@ export default function EditCategoryDialog(
       ref={dialogRef}
       onClose={close}
       className="
-        m-auto w-[400px] rounded-xl border border-zinc-300
+        m-auto w-[500px] rounded-xl border border-zinc-300
         bg-white p-0 shadow-xl
       "
     >
@@ -101,7 +106,7 @@ export default function EditCategoryDialog(
         </button>
 
         <h2 className="mb-6 text-2xl font-semibold flex items-center gap-3">
-          <SquarePen></SquarePen>
+          <SquarePen/>
           <span>Edit Category</span>
         </h2>
 
@@ -115,6 +120,11 @@ export default function EditCategoryDialog(
           <input
             id={`category-name-${category.id}`}
             value={editName}
+            onBlur={() => {
+              if (editName.trim() === "") {
+                setEditName(category.name);
+              }
+            }}
             onChange={(e) => setEditName(e.target.value)}
             maxLength={100}
             className="
@@ -125,13 +135,12 @@ export default function EditCategoryDialog(
           />
         </div>
         {/* Color */}
-        <div className="mb-7">
+        <div className="mb-5">
           <label
             htmlFor={`category-name-${category.id}`}
             className="mb-2 block text-xl font-medium text-zinc-700">
             Color
           </label>
-
           <div className="flex gap-2">
             {
             (Object.keys(CATEGORY_COLORS) as (keyof typeof CATEGORY_COLORS)[])
@@ -155,23 +164,22 @@ export default function EditCategoryDialog(
         </div>
 
         {/* Save/Delete buttons */}
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={saveCategory}
-            className="text-lg rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
+        <button
+          type="button"
+          onClick={saveCategory}
+          className="text-xl w-30 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
           >
-            Save
-          </button>
+          Save
+        </button>
+        <br/>
 
-          <button
-            type="button"
-            onClick={deleteCategory}
-            className="text-lg rounded-lg bg-red-400 px-4 py-2 text-white hover:bg-red-500 cursor-pointer"
-          >
-            Delete
-          </button>
-        </div>
+        <DeleteCollapsable
+          className="mt-8"
+          itemId={category.id}
+          originalName={category.name}
+          onDelete={(deleteName) => deleteCategory(deleteName)}
+        />
+
       </div>
     </dialog>
   );

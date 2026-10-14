@@ -35,4 +35,9 @@ public class TasksController {
                                @RequestBody TaskUpdateRequest request) {
         service.updateTask(id, session.getId(), request);
     }
+
+    @DeleteMapping("/{id}")
+    public void deleteTask(@PathVariable Long id, HttpSession session) {
+        service.deleteTask(id, session.getId());
+    }
 }

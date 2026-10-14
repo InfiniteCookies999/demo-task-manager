@@ -64,4 +64,9 @@ public class TaskService {
 
         taskRepository.save(task);
     }
+
+    @Transactional
+    public void deleteTask(Long id, String sessionId) {
+        taskRepository.deleteByIdAndSessionId(id, sessionId);
+    }
 }

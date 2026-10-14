@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Category } from "../types/category";
-import { CATEGORY_COLORS, SEPARATER_CATEGORY_BG_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
+import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
 import { SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
 import type { Task } from "../types/task";
@@ -180,25 +180,6 @@ export default function CategoryCard(
         onDragOver={(e) => handleDragOver(e)}
         onDrop={(e) => handleDrop(e, category.id)}
         >
-
-        {/* drag handle */}
-        <div
-          className={`
-            flex h-8 cursor-grab items-center justify-center
-            border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} bg-black/5
-            active:cursor-grabbing
-          `}
-          title="Drag to move category"
-        >
-          <div className="flex gap-1">
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-            <span className={`h-1 w-1 rounded-full ${SEPARATER_CATEGORY_BG_COLORS[category.color]}`} />
-          </div>
-        </div>
 
         {/* header */}
         <div className={`border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} pb-2 mt-2`}>
