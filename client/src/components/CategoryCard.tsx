@@ -1,12 +1,11 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
 import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
 import type { Task } from "../types/task";
 import EditTaskDialog from "./EditTaskDialog";
-import useApiError from "../hooks/apiError";
-import { AppContext, useAppContext } from "../api/AppContext";
+import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
 
 type CategoryCardProps = {
@@ -15,6 +14,8 @@ type CategoryCardProps = {
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   draggingCategoryId: number | null;
   setDraggingCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
+  dropTargetCategoryId: number | null;
+  setDropTargetCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
 };
 
 function HeaderButton(
@@ -42,7 +43,9 @@ export default function CategoryCard(
     categories,
     setCategories,
     draggingCategoryId,
-    setDraggingCategoryId
+    setDraggingCategoryId,
+    dropTargetCategoryId,
+    setDropTargetCategoryId
   }:
   CategoryCardProps
 ) {
@@ -135,6 +138,7 @@ export default function CategoryCard(
   function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    setDropTargetCategoryId(category.id);
   }
 
   async function updateCategoryOrder(categories: Category[]) {
@@ -183,24 +187,42 @@ export default function CategoryCard(
       position: index,
     }));
 
+    setDropTargetCategoryId(null);
     setCategories(updated);
     updateCategoryOrder(updated);
   }
 
 
+  const isDragTarget = dropTargetCategoryId === category.id &&
+                       draggingCategoryId !== null &&
+                       draggingCategoryId !== category.id;
+
   return (
     <>
+      {isDragTarget && (
+          <div
+            className="w-[400px] h-[190px] shrink-0 rounded-lg bg-zinc-300 border-b border-zinc-600"
+            aria-hidden="true"
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, category.id)}
+          />
+        )}
+
       <div
         data-category-id={category.id}
         className={
           `w-[400px] shrink-0 rounded-lg border border-zinc-300
           ${CATEGORY_COLORS[category.color]} p-4 shadow-sm
-          ${draggingCategoryId === category.id ? "opacity-30" : "opacity-100"}
+          ${isDragTarget ? "hidden"
+                         : draggingCategoryId === category.id ? "opacity-30" : "opacity-100"}
           `
           }
         draggable
         onDragStart={(e) => handleDragStart(e, category.id)}
-        onDragEnd={() => setDraggingCategoryId(null)}
+        onDragEnd={() => {
+          setDraggingCategoryId(null);
+          setDropTargetCategoryId(null);
+        }}
         onDragOver={(e) => handleDragOver(e)}
         onDrop={(e) => handleDrop(e, category.id)}
         >

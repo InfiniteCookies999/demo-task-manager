@@ -13,6 +13,7 @@ function App() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
+  const [dropTargetCategoryId, setDropTargetCategoryId] = useState<number | null>(null);
   const { error, handleError } = useApiError();
 
   useEffect(() => {
@@ -67,6 +68,8 @@ function App() {
               setCategories={setCategories}
               draggingCategoryId={draggingCategoryId}
               setDraggingCategoryId={setDraggingCategoryId}
+              dropTargetCategoryId={dropTargetCategoryId}
+              setDropTargetCategoryId={setDropTargetCategoryId}
             ></CategoryCard>
           ))}
         </div>
