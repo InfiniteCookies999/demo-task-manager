@@ -20,8 +20,9 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "session_id", nullable = false)
-    private String sessionId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "board_id", nullable = false)
+    private Board board;
 
     @Column(nullable = false, length = MAX_NAME_LENGTH)
     private String name;
@@ -33,7 +34,7 @@ public class Category {
     @Column(nullable = false)
     private Integer position;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "category", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @Size(max = MAX_TASKS)
     private List<Task> tasks;
 

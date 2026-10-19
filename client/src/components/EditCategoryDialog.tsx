@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORY_COLORS, type Category } from "../types/category";
-import { SquarePen, X, ChevronDown } from "lucide-react";
+import { SquarePen, X } from "lucide-react";
 import DeleteCollapsable from "./DeleteCollapsable";
 import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
@@ -56,7 +56,7 @@ export default function EditCategoryDialog(
     );
 
     try {
-      await apiFetch(`/api/categories/${category.id}`, {
+      await apiFetch(`/api/boards/${category.boardId}/categories/${category.id}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -78,7 +78,7 @@ export default function EditCategoryDialog(
     }
 
     try {
-      await apiFetch(`/api/categories/${category.id}`, {
+      await apiFetch(`/api/boards/${category.boardId}/categories/${category.id}`, {
         method: "DELETE",
       });
       setCategories((current) =>

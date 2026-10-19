@@ -124,6 +124,23 @@ type RichTexEditorProps = {
   getJSON?: (getter: () => SerializedEditorState | null) => void;
 };
 
+function FocusableContentArea({ placeholder }: { placeholder: string }) {
+  const [editor] = useLexicalComposerContext();
+  return (
+    <div className="relative min-h-[200px] border border-t-0 border-zinc-300 rounded-b-lg bg-white p-3 text-xl"
+      onClick={() => editor.focus()}
+    >
+      <ContentEditable
+        className="relative outline-none"
+        aria-label="Rich text editor"
+        aria-placeholder={placeholder}
+        placeholder={
+          <div className="absolute top-3 left-3 inline-block overflow-hidden text-[#999] pointer-events-none select-none">{placeholder}</div>
+        }
+      />
+    </div>
+  );
+}
 
 export default function RichTexEditor(
   { json, getJSON }: RichTexEditorProps
@@ -165,17 +182,7 @@ export default function RichTexEditor(
 
         <div className="overflow-hidden rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
           <ToolBar/>
-
-          <div className="relative min-h-[200px] border border-t-0 border-zinc-300 rounded-b-lg bg-white p-3 text-xl">
-            <ContentEditable
-              className="relative outline-none"
-              aria-label="Rich text editor"
-              aria-placeholder={placeholder}
-              placeholder={
-                <div className="absolute top-3 left-3 inline-block overflow-hidden text-[#999] pointer-events-none select-none">{placeholder}</div>
-              }
-            />
-          </div>
+          <FocusableContentArea placeholder={placeholder} />
         </div>
       </LexicalExtensionComposer>
     </>

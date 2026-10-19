@@ -8,12 +8,12 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    long countBySessionIdAndCategoryId(String sessionId, Long categoryId);
+    long countByCategoryId(Long categoryId);
 
-    List<Task> findAllBySessionIdAndCategoryIdOrderByPositionAsc(String sessionId, Long categoryId);
+    List<Task> findAllByCategoryIdOrderByPositionAsc(Long categoryId);
 
-    Optional<Task> findByIdAndSessionId(Long id, String sessionId);
+    Optional<Task> findByIdAndCategoryBoardId(Long id, Long boardId);
 
-    void deleteByIdAndSessionId(Long id, String sessionId);
+    void deleteById(Long id);
 
 }

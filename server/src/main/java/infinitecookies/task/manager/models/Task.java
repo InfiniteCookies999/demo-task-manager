@@ -19,9 +19,6 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "session_id", nullable = false)
-    private String sessionId;
-
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;

@@ -8,6 +8,7 @@ import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
 
 type EditTaskDialogProps = {
+  boardId: number;
   task: Task,
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   onClose: () => void;
@@ -15,6 +16,7 @@ type EditTaskDialogProps = {
 
 export default function EditTaskDialog(
   {
+    boardId,
     task,
     setTasks,
     onClose
@@ -73,7 +75,7 @@ export default function EditTaskDialog(
     );
 
     try {
-      await apiFetch(`/api/tasks/${task.id}`, {
+      await apiFetch(`/api/boards/${boardId}/tasks/${task.id}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -96,7 +98,7 @@ export default function EditTaskDialog(
     }
 
     try {
-      await apiFetch(`/api/tasks/${task.id}`, {
+      await apiFetch(`/api/boards/${boardId}/tasks/${task.id}`, {
         method: "DELETE",
       });
       setTasks((current) =>

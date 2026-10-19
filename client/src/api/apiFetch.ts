@@ -10,7 +10,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 
   if (!response.ok) {
 
-    let message = `Request failed (${response.status})`;
+    let message = `Request failed (${response.status}) at (${input})`;
 
     try {
       const body = await response.json();

@@ -63,7 +63,7 @@ export default function CategoryCard(
   useEffect(() => {
     async function fetchTasks() {
       try {
-        const response = await fetch(`/api/tasks?categoryId=${category.id}`);
+        const response = await apiFetch(`/api/boards/${category.boardId}/tasks?categoryId=${category.id}`);
         const tasks: Task[] = await response.json();
         setTasks(tasks);
       } catch (err) {
@@ -76,7 +76,7 @@ export default function CategoryCard(
 
   async function addTask() {
     try {
-      const response = await apiFetch("/api/tasks", {
+      const response = await apiFetch(`/api/boards/${category.boardId}/tasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -96,7 +96,7 @@ export default function CategoryCard(
   async function markTaskCompleted(taskId: number, completed: boolean) {
     try {
       const newCompleted = !completed;
-      await apiFetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/boards/${category.boardId}/tasks/${taskId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -310,6 +310,7 @@ export default function CategoryCard(
       )}
       {isTaskEditOpen && editTask && (
         <EditTaskDialog
+          boardId={category.boardId}
           task={editTask}
           setTasks={setTasks}
           onClose={() => {

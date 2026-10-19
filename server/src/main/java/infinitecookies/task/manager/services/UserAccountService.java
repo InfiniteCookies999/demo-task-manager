@@ -1,0 +1,61 @@
+package infinitecookies.task.manager.services;
+
+import infinitecookies.task.manager.models.Board;
+import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.dto.UserAccountResponse;
+import infinitecookies.task.manager.repositories.BoardRepository;
+import infinitecookies.task.manager.repositories.UserRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+
+import java.util.Set;
+
+@Service
+public class UserAccountService {
+
+    private final UserRepository userRepository;
+
+    public UserAccountService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public UserAccountResponse getOrCreateAccount(String sessionId) {
+        return userRepository.findBySessionId(sessionId)
+            .map(UserAccountResponse::fromUser)
+            .orElseGet(() -> createOrRetrieve(sessionId));
+    }
+
+    private UserAccountResponse createOrRetrieve(String sessionId) {
+        // Deal with duplicate request coming in nearly the same time. It's possible
+        // in that case for the unique constraint on the session id to fail because
+        // it was created by the other request.
+        try {
+            return createGuestAccount(sessionId);
+        } catch (DataIntegrityViolationException e) {
+            return userRepository.findBySessionId(sessionId)
+                .map(UserAccountResponse::fromUser)
+                .orElseThrow(() -> e);
+        }
+    }
+
+    @Transactional
+    private UserAccountResponse createGuestAccount(String sessionId) {
+
+        User user = new User();
+        user.setSessionId(sessionId);
+        user.setUsername(""); // Make sure not to violate the non-null constraint.
+
+        // Create a default board so the user can start interacting right away.
+        Board ownedBoard = new Board();
+        ownedBoard.setOwner(user);
+        ownedBoard.setAllowedUsers(Set.of(user));
+        user.setOwnedBoard(ownedBoard);
+
+        // Save first to generate the database ID.
+        user = userRepository.save(user);
+        user.setUsername("guest#" + user.getId());
+
+        return UserAccountResponse.fromUser(user);
+    }
+}

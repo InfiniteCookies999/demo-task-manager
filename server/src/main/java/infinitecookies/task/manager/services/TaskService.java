@@ -13,28 +13,33 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class TaskService {
 
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final BoardService boardService;
 
-    public TaskService(TaskRepository taskRepository, CategoryRepository categoryRepository) {
+    public TaskService(TaskRepository taskRepository,
+                       CategoryRepository categoryRepository,
+                       BoardService boardService) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
+        this.boardService = boardService;
     }
 
-    public TaskResponse createTask(String sessionId, CreateTaskRequest request) {
+    public TaskResponse createTask(Long userId, Long boardId, CreateTaskRequest request) {
+        boardService.checkHasAuthorization(userId, boardId);
 
-        Category category = categoryRepository.findByIdAndSessionId(request.categoryId(), sessionId)
+        Category category = categoryRepository.findByIdAndBoardId(request.categoryId(), boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
         // This is fine the user would have to create/delete over 2 billion times.
-        int nextPosition = (int) taskRepository.countBySessionIdAndCategoryId(sessionId, request.categoryId());
+        int nextPosition = (int) taskRepository.countByCategoryId(request.categoryId());
 
         Task task = new Task();
-        task.setSessionId(sessionId);
         task.setName(request.name());
         task.setDescription(null);
         task.setCompleted(false);
@@ -45,14 +50,22 @@ public class TaskService {
         return TaskResponse.fromTask(task);
     }
 
-    public List<TaskResponse> getTasksForCategory(String sessionId, Long categoryId) {
-        return taskRepository.findAllBySessionIdAndCategoryIdOrderByPositionAsc(sessionId, categoryId)
+    public List<TaskResponse> getTasksForCategory(Long userId, Long boardId, Long categoryId) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        // Make sure the category exists in the given board.
+        categoryRepository.findByIdAndBoardId(categoryId, boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+
+        return taskRepository.findAllByCategoryIdOrderByPositionAsc(categoryId)
             .stream().map(TaskResponse::fromTask).toList();
     }
 
     @Transactional
-    public void updateTask(Long id, String sessionId, TaskUpdateRequest request) {
-        Task task = taskRepository.findByIdAndSessionId(id, sessionId)
+    public void updateTask(Long userId, Long boardId, Long id, TaskUpdateRequest request) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
 
         if (request.name() != null) {
@@ -64,21 +77,21 @@ public class TaskService {
         if (request.completed() != null) {
             task.setCompleted(request.completed());
         }
-
-        taskRepository.save(task);
     }
 
     @Transactional
-    public void deleteTask(Long id, String sessionId) {
-        Task task = taskRepository.findByIdAndSessionId(id, sessionId)
+    public void deleteTask(Long userId, Long boardId, Long id) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
         long categoryId = task.getCategory().getId();
 
-        taskRepository.deleteByIdAndSessionId(id, sessionId);
+        taskRepository.delete(task);
+        taskRepository.flush();
 
         // Re-normalizing the positions.
-        List<Task> tasks = taskRepository
-            .findAllBySessionIdAndCategoryIdOrderByPositionAsc(sessionId, categoryId);
+        List<Task> tasks = taskRepository.findAllByCategoryIdOrderByPositionAsc(categoryId);
         for (int i= 0; i < tasks.size(); i++) {
             tasks.get(i).setPosition(i);
         }

@@ -5,6 +5,7 @@ import infinitecookies.task.manager.models.CategoryColor;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
+import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
@@ -17,41 +18,45 @@ import java.util.List;
 @Service
 public class CategoryService {
 
-    private static final long MAX_CATEGORIES = 30;
+    private final CategoryRepository categoryRepository;
+    private final BoardRepository boardRepository;
+    private final BoardService boardService;
 
-    private final CategoryRepository repository;
-
-    public CategoryService(CategoryRepository repository) {
-        this.repository = repository;
+    public CategoryService(CategoryRepository repository, BoardRepository boardRepository,
+                           BoardService boardService) {
+        this.categoryRepository = repository;
+        this.boardRepository = boardRepository;
+        this.boardService = boardService;
     }
 
-    public CategoryResponse createCategory(String sessionId) {
+    public CategoryResponse createCategory(Long userId, Long boardId) {
+        boardService.checkHasAuthorization(userId, boardId);
 
-        long count = repository.countBySessionId(sessionId);
-        if (count >= MAX_CATEGORIES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hit category limit");
-        }
+        long count = categoryRepository.countByBoardId(boardId);
 
         Category category = new Category();
         category.setName("Untitled");
         category.setColor(CategoryColor.GRAY);
-        category.setSessionId(sessionId);
+        category.setBoard(boardRepository.getReferenceById(boardId));
         category.setPosition((int) count);
-        repository.save(category);
+        categoryRepository.save(category);
         return CategoryResponse.fromCategory(category);
     }
 
-    public List<CategoryResponse> getCategories(String sessionId) {
-        List<Category> categories = repository.findAllBySessionIdOrderByPositionAsc(sessionId);
+    public List<CategoryResponse> getCategories(Long userId, Long boardId) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        List<Category> categories = categoryRepository.findAllByBoardIdOrderByPositionAsc(boardId);
         return categories.stream()
             .map(CategoryResponse::fromCategory)
             .toList();
     }
 
     @Transactional
-    public void updateCategory(Long id, String sessionId, CategoryUpdateRequest request) {
+    public void updateCategory(Long userId, Long boardId, Long id, CategoryUpdateRequest request) {
+        boardService.checkHasAuthorization(userId, boardId);
 
-        Category category = repository.findByIdAndSessionId(id, sessionId)
+        Category category = categoryRepository.findByIdAndBoardId(id, boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
         if (request.name() != null) {
@@ -60,23 +65,22 @@ public class CategoryService {
         if (request.color() != null) {
             category.setColor(request.color());
         }
-
-        repository.save(category);
     }
 
     @Transactional
-    public void reorderCategories(String sessionId, CategoryReorderRequest request) {
+    public void reorderCategories(Long userId, Long boardId, CategoryReorderRequest request) {
+        boardService.checkHasAuthorization(userId, boardId);
 
         List<CategoryReorderRequest.Entry> entries = request.entries();
 
         List<Category> categories = new ArrayList<>();
         for (CategoryReorderRequest.Entry entry : entries) {
-            Category category = repository.findByIdAndSessionId(entry.id(), sessionId)
+            Category category = categoryRepository.findByIdAndBoardId(entry.id(), boardId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
             categories.add(category);
         }
 
-        long count = repository.countBySessionId(sessionId);
+        long count = categoryRepository.countByBoardId(boardId);
         if (categories.size() != count) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must specify the re-ordering for all categores");
         }
@@ -87,14 +91,17 @@ public class CategoryService {
     }
 
     @Transactional
-    public void deleteCategory(Long id, String sessionId) {
-        int deleted = repository.deleteByIdAndSessionId(id, sessionId);
+    public void deleteCategory(Long userId, Long boardId, Long id) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        int deleted = categoryRepository.deleteByIdAndBoardId(id, boardId);
         if (deleted == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
         }
+        categoryRepository.flush();
 
         // Re-normalizing the positions.
-        List<Category> categories = repository.findAllBySessionIdOrderByPositionAsc(sessionId);
+        List<Category> categories = categoryRepository.findAllByBoardIdOrderByPositionAsc(boardId);
         for (int i= 0; i < categories.size(); i++) {
             categories.get(i).setPosition(i);
         }
