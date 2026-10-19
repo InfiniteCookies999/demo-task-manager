@@ -20,6 +20,7 @@ public class UserAccountService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public UserAccountResponse getOrCreateAccount(String sessionId) {
         return userRepository.findBySessionId(sessionId)
             .map(UserAccountResponse::fromUser)
@@ -39,7 +40,6 @@ public class UserAccountService {
         }
     }
 
-    @Transactional
     private UserAccountResponse createGuestAccount(String sessionId) {
 
         User user = new User();
