@@ -56,11 +56,15 @@ export default function EditTaskDialog(
   async function saveTask() {
 
     if (!getDescriptionJSON) {
-      // TODO (maddie): this really should not happen but what if it does.
+      // TODO (maddie): this really should not happen but what if it does?
       return;
     }
 
     const description = getDescriptionJSON();
+    if (description == null) {
+      // TODO (maddie): this really should not happen but what if it does?
+      return;
+    }
 
     if (editName === task.name &&
         JSON.stringify(description) === originalDescriptionRef.current
@@ -71,7 +75,7 @@ export default function EditTaskDialog(
 
     setTasks((current) =>
       current.map((otherTask) => otherTask.id == task.id
-        ? {...otherTask, name: editName} : otherTask)
+        ? {...otherTask, name: editName, description} : otherTask)
     );
 
     try {

@@ -1,21 +1,32 @@
-import { useEffect, useState } from "react";
+import { act, useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
-import { Circle, CircleCheck, Plus, SquarePen } from "lucide-react";
+import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
-import type { Task } from "../types/task";
-import EditTaskDialog from "./EditTaskDialog";
+import type { Task, TaskDropTarget } from "../types/task";
 import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
+import TaskCard from "./TaskCard";
+import createDragClone from "../utils/createDragClone";
 
 type CategoryCardProps = {
   category: Category;
   categories: Category[];
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
-  draggingCategoryId: number | null;
-  setDraggingCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
+  tasks: Task[];
+  prevCategoryId: number | null;
+  nextCategoryId: number | null;
+  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
+  // Category dragging
+  draggingCategory: Category | null;
+  setDraggingCategory: React.Dispatch<React.SetStateAction<Category | null>>;
   dropTargetCategoryId: number | null;
   setDropTargetCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
+  // Task dragging
+  draggingTask: Task | null;
+  setDraggingTask: React.Dispatch<React.SetStateAction<Task | null>>;
+  taskDropTarget: TaskDropTarget;
+  setTaskDropTarget: React.Dispatch<React.SetStateAction<TaskDropTarget>>;
 };
 
 function HeaderButton(
@@ -37,42 +48,65 @@ function HeaderButton(
   );
 }
 
+function DropArea(
+  { category, handleDrop }:
+  { category: Category, handleDrop: (e: React.DragEvent<HTMLDivElement>, targetId: number) => void}
+) {
+  return (
+    <div
+      className="w-[400px] h-[190px] shrink-0 rounded-lg bg-zinc-300 border-b border-zinc-600"
+      aria-hidden="true"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(e) => handleDrop(e, category.id)}
+    />
+  );
+}
+
 export default function CategoryCard(
   {
     category,
     categories,
     setCategories,
-    draggingCategoryId,
-    setDraggingCategoryId,
+    tasks,
+    prevCategoryId,
+    nextCategoryId,
+    setTasksByCategory,
+    // Category dragging
+    draggingCategory,
+    setDraggingCategory,
     dropTargetCategoryId,
-    setDropTargetCategoryId
+    setDropTargetCategoryId,
+    // Task dragging
+    draggingTask,
+    setDraggingTask,
+    taskDropTarget,
+    setTaskDropTarget
   }:
   CategoryCardProps
 ) {
 
   const { handleError } = useAppContext();
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null)
 
+  const setTasks: React.Dispatch<React.SetStateAction<Task[]>> =
+    (action) =>
+  {
+    setTasksByCategory((current) => {
+      const currentTasks = current[category.id] ?? [];
 
-  // Load tasks for the category
-  useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const response = await apiFetch(`/api/boards/${category.boardId}/tasks?categoryId=${category.id}`);
-        const tasks: Task[] = await response.json();
-        setTasks(tasks);
-      } catch (err) {
-        handleError(err);
+      const updatedTasks = typeof action === "function"
+                          ? action(currentTasks)
+                          : action;
+      return {
+        ...current,
+        [category.id]: updatedTasks
       }
-    }
-    fetchTasks();
-  }, [category.id]);
-
+    });
+  };
 
   async function addTask() {
     try {
@@ -93,56 +127,20 @@ export default function CategoryCard(
     }
   }
 
-  async function markTaskCompleted(taskId: number, completed: boolean) {
-    try {
-      const newCompleted = !completed;
-      await apiFetch(`/api/boards/${category.boardId}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          completed: newCompleted
-        })
-      });
-      setTasks((current) =>
-        current.map((otherTask) => otherTask.id == taskId
-          ? { ...otherTask, completed: newCompleted } : otherTask))
-    } catch (err) {
-      handleError(err);
-    }
-  }
-
 
   // Drag and drop functionality.
   // ----------------------------------
 
-  function handleDragStart(
-    e: React.DragEvent<HTMLDivElement>,
-    id: number
-  ) {
+  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(id));
+    e.dataTransfer.setData("text/plain", String(category.id));
 
     const elm = e.currentTarget.closest("[data-category-id]") as HTMLElement | null;
 
     if (elm) {
 
       // Create a clone of the element so we can modify the drag image.
-      const clone = elm.cloneNode(true) as HTMLElement;
-
-      clone.style.position = "absolute";
-      // make sure it does not appear on the page since we are adding it to the DOM and only want it visible
-      // through the drag image.
-      clone.style.top = "-9999px";
-      clone.style.left = "-9999px";
-      clone.style.width = `${elm.offsetWidth}px`;
-      clone.style.opacity = "0.9";
-      clone.style.pointerEvents = "none";
-      // clone.style.boxShadow = "0 25px 50px rgba(0, 0, 0, 0.5), 0 10px 20px rgba(0, 0, 0, 0.15)";
-      clone.style.transform = "rotate(2deg)";
-
-
+      const clone = createDragClone(elm);
       document.body.appendChild(clone);
 
       e.dataTransfer.setDragImage(clone, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
@@ -153,18 +151,45 @@ export default function CategoryCard(
       });
     }
 
-    setDraggingCategoryId(id);
+    setDraggingCategory(category);
   }
 
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDropTargetCategoryId(category.id);
+  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
+    // Ignore drag events between children elements of the same card.
+    if (e.relatedTarget instanceof Node &&
+        e.currentTarget.contains(e.relatedTarget)) {
+      return;
+    }
+
+    if (!draggingCategory) {
+      if (draggingTask && tasks.length === 0) {
+        setTaskDropTarget({ type: "category", id: category.id });
+      }
+      return;
+    }
+    if (draggingCategory.id === category.id) {
+      return;
+    }
+
+    setDropTargetCategoryId((current) => {
+      if (current === category.id) {
+        // The user dragged back over the card that is the current drag
+        // target. In this case we want to move to the next or previous
+        // category since we place the drop area after/before depending
+        // on its position relative to the card being dragged.
+        if (draggingCategory.position < category.position) {
+          return prevCategoryId;
+        } else {
+          return nextCategoryId;
+        }
+      }
+      return category.id;
+    });
   }
 
   async function updateCategoryOrder(categories: Category[]) {
     try {
-      await apiFetch(`/api/categories/reorder`, {
+      await apiFetch(`/api/boards/${category.boardId}/categories/reorder`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -214,36 +239,40 @@ export default function CategoryCard(
   }
 
   const isDragTarget = dropTargetCategoryId === category.id &&
-                       draggingCategoryId !== null &&
-                       draggingCategoryId !== category.id;
+                       draggingCategory &&
+                       draggingCategory.id !== category.id;
+
+  const dragHasBeenMoved = draggingCategory &&
+                           draggingCategory.id === category.id &&
+                           dropTargetCategoryId !== null &&
+                           dropTargetCategoryId !== category.id;
 
   return (
     <>
-      {isDragTarget && (
-          <div
-            className="w-[400px] h-[190px] shrink-0 rounded-lg bg-zinc-300 border-b border-zinc-600"
-            aria-hidden="true"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, category.id)}
-          />
-        )}
+      {(isDragTarget && draggingCategory.position > category.position) &&
+        <DropArea category={category} handleDrop={handleDrop} />}
 
       <div
-        data-category-id={category.id}
         className={
           `w-[400px] shrink-0 rounded-lg border border-zinc-300
           ${CATEGORY_COLORS[category.color]} p-4 shadow-sm
-          ${isDragTarget ? "hidden"
-                         : draggingCategoryId === category.id ? "opacity-30" : "opacity-100"}
+          ${dragHasBeenMoved
+              ? "hidden"
+              : ((draggingCategory && draggingCategory.id === category.id) ? "opacity-30" : "opacity-100")}
           `
           }
+        data-category-id={category.id}
         draggable
-        onDragStart={(e) => handleDragStart(e, category.id)}
+        onDragStart={(e) => handleDragStart(e)}
         onDragEnd={() => {
-          setDraggingCategoryId(null);
+          setDraggingCategory(null);
           setDropTargetCategoryId(null);
         }}
-        onDragOver={(e) => handleDragOver(e)}
+        onDragEnter={(e) => handleDragEnter(e)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
         onDrop={(e) => handleDrop(e, category.id)}
         >
 
@@ -265,42 +294,37 @@ export default function CategoryCard(
         </div>
         {/* task drop area*/}
         <div className="p-4 flex flex-col gap-2">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className="
-                  bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 p-4 flex justify-between text-lg">
-
-                <div className="flex items-start gap-2">
-                  <button
-                    type="button"
-                    title={task.completed ? "Mark Not Complete" : "Mark Complete"}
-                    aria-label="Mark Complete"
-                    className="shrink-0 cursor-pointer"
-                    onClick={() => markTaskCompleted(task.id, task.completed)}
-                  >
-                    {
-                      task.completed
-                        ? <CircleCheck className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer fill-emerald-300"/>
-                        : <Circle className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer"/>
-                    }
-                  </button>
-
-                  <span className={`min-w-0 break-words ${task.completed ? "text-[#777]" : ""}`}>{task.name}</span>
-                </div>
-
-                <SquarePen
-                  className="cursor-pointer hover:bg-sky-200 rounded-lg shrink-0"
-                  onClick={() => {
-                    setEditTask(task);
-                    setIsTaskEditOpen(true);
-                  }}
-                  >
-                </SquarePen>
-              </div>
-            ))}
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              category={category}
+              task={task}
+              tasks={tasks}
+              setTasks={setTasks}
+              setTasksByCategory={setTasksByCategory}
+              draggingTask={draggingTask}
+              setDraggingTask={setDraggingTask}
+              taskDropTarget={taskDropTarget}
+              setTaskDropTarget={setTaskDropTarget}
+            />
+          ))}
+          {/* When task is null it handles the behavior for dropping task into an empty category. */}
+          {tasks.length == 0 &&
+            <TaskCard
+              category={category}
+              task={null}
+              tasks={tasks}
+              setTasks={setTasks}
+              setTasksByCategory={setTasksByCategory}
+              draggingTask={draggingTask}
+              setDraggingTask={setDraggingTask}
+              taskDropTarget={taskDropTarget}
+              setTaskDropTarget={setTaskDropTarget}
+            />
+          }
         </div>
       </div>
+
       {isEditOpen && (
         <EditCategoryDialog
           category={category}
@@ -308,16 +332,9 @@ export default function CategoryCard(
           onClose={() => setIsEditOpen(false)}
         />
       )}
-      {isTaskEditOpen && editTask && (
-        <EditTaskDialog
-          boardId={category.boardId}
-          task={editTask}
-          setTasks={setTasks}
-          onClose={() => {
-            setIsTaskEditOpen(false);
-            setEditTask(null);
-          }}/>
-      )}
+
+      {(isDragTarget && draggingCategory.position < category.position) &&
+        <DropArea category={category} handleDrop={handleDrop} />}
     </>
   );
 }

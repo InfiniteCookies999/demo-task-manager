@@ -37,7 +37,7 @@ export type CategoryColor = keyof typeof CATEGORY_COLORS;
 export type Category = {
   id: number,
   boardId: number;
-  name: string,
-  color: CategoryColor,
-  position: number
+  name: string;
+  color: CategoryColor;
+  position: number;
 };

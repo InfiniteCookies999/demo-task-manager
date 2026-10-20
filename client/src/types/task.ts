@@ -1,8 +1,15 @@
 import type { SerializedEditorState } from "lexical";
 
 export type Task = {
-  id: number,
-  name: string,
-  description: SerializedEditorState,
-  completed: boolean
+  id: number;
+  categoryId: number;
+  name: string;
+  description: SerializedEditorState;
+  completed: boolean;
+  position: number;
 };
+
+export type TaskDropTarget =
+  | { type: "task", id: number }
+  | { type: "category", id: number }
+  | null;

@@ -7,6 +7,7 @@ import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../api/AppContext";
 import type { User } from "../types/user";
 import ErrorAlert from "./ErrorAlert";
+import type { Task, TaskDropTarget } from "../types/task";
 
 
 type BoardProps = {
@@ -20,20 +21,41 @@ export default function Board({ user, boardId, error }: BoardProps) {
   const { handleError } = useAppContext();
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
+
+  // Store the tasks by category in a Record so that when tasks are moved between
+  // different categories they can be found by source/destination category id.
+  const[tasksByCategory, setTasksByCategory] = useState<Record<number, Task[]>>({});
+
+  const [draggingCategory, setDraggingCategory] = useState<Category | null>(null);
   const [dropTargetCategoryId, setDropTargetCategoryId] = useState<number | null>(null);
 
+  const [draggingTask, setDraggingTask] = useState<Task | null>(null);
+  const [taskDropTarget, setTaskDropTarget] = useState<TaskDropTarget>(null);
+
   useEffect(() => {
-    async function fetchCategories() {
+    async function fetchCategoriesAndTasks() {
       try {
         const categoriesResponse = await apiFetch(`/api/boards/${boardId}/categories`);
         const categories: Category[] = await categoriesResponse.json();
         setCategories(categories);
+
+        const tasksResponse = await apiFetch(`/api/boards/${boardId}/tasks`);
+        const tasks: Task[] = await tasksResponse.json();
+
+        const groupedTasks: Record<number, Task[]> = {};
+        for (const category of categories) {
+          groupedTasks[category.id] = [];
+        }
+
+        for (const task of tasks) {
+          groupedTasks[task.categoryId].push(task);
+        }
+        setTasksByCategory(groupedTasks);
       } catch (err) {
         handleError(err);
       }
     }
-    fetchCategories();
+    fetchCategoriesAndTasks();
   }, [boardId]);
 
   async function createCategory() {
@@ -73,16 +95,24 @@ export default function Board({ user, boardId, error }: BoardProps) {
 
       {/* categories*/}
       <div className="flex flex-1 items-start gap-4 overflow-x-scroll p-8">
-      {categories.map((category) => (
+      {categories.map((category, index) => (
         <CategoryCard
           key={category.id}
           categories={categories}
           category={category}
+          prevCategoryId={index > 0 ? categories[index - 1].id : null}
+          nextCategoryId={index < categories.length - 1 ? categories[index + 1].id : null}
+          tasks={tasksByCategory[category.id] ?? []}
+          setTasksByCategory={setTasksByCategory}
           setCategories={setCategories}
-          draggingCategoryId={draggingCategoryId}
-          setDraggingCategoryId={setDraggingCategoryId}
+          draggingCategory={draggingCategory}
+          setDraggingCategory={setDraggingCategory}
           dropTargetCategoryId={dropTargetCategoryId}
           setDropTargetCategoryId={setDropTargetCategoryId}
+          draggingTask={draggingTask}
+          setDraggingTask={setDraggingTask}
+          taskDropTarget={taskDropTarget}
+          setTaskDropTarget={setTaskDropTarget}
         ></CategoryCard>
       ))}
       </div>

@@ -109,6 +109,7 @@ export default function EditCategoryDialog(
             rounded-lg p-1.5
             text-zinc-500
             hover:bg-zinc-100 hover:text-zinc-800
+            focus:outline-none
             cursor-pointer
           "
           aria-label="Close"

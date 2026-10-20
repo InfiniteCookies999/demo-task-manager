@@ -5,7 +5,6 @@ import infinitecookies.task.manager.models.dto.TaskResponse;
 import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
 import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.session.SessionUser;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,9 +26,8 @@ public class TasksController {
     }
 
     @GetMapping
-    public List<TaskResponse> getTasks(@PathVariable Long boardId, SessionUser sessionUser,
-                                       @RequestParam Long categoryId) {
-        return service.getTasksForCategory(sessionUser.id(), boardId, categoryId);
+    public List<TaskResponse> getTasks(@PathVariable Long boardId, SessionUser sessionUser) {
+        return service.getTasks(sessionUser.id(), boardId);
     }
 
     @PatchMapping("/{id}")

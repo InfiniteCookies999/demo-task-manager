@@ -5,6 +5,7 @@ import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CreateTaskRequest;
 import infinitecookies.task.manager.models.dto.TaskResponse;
 import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
+import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
 import jakarta.transaction.Transactional;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class TaskService {
@@ -50,14 +50,10 @@ public class TaskService {
         return TaskResponse.fromTask(task);
     }
 
-    public List<TaskResponse> getTasksForCategory(Long userId, Long boardId, Long categoryId) {
+    public List<TaskResponse> getTasks(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        // Make sure the category exists in the given board.
-        categoryRepository.findByIdAndBoardId(categoryId, boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
-
-        return taskRepository.findAllByCategoryIdOrderByPositionAsc(categoryId)
+        return taskRepository.findAllByBoardId(boardId)
             .stream().map(TaskResponse::fromTask).toList();
     }
 
