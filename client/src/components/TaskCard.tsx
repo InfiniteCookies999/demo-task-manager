@@ -101,13 +101,13 @@ export default function TaskCard(
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.stopPropagation(); // Prevent the parent category from dragging.
 
-    if (!task) {
+    // Prevent dragging when dialogs are open.
+    if (document.querySelector("dialog:modal")) {
+      e.preventDefault();
       return;
     }
 
-    if (isEditOpen) {
-      // Note: for some reasion when the edit dialog is open its still allowing drag.
-      e.preventDefault();
+    if (!task) {
       return;
     }
 

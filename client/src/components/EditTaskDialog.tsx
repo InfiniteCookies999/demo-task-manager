@@ -6,6 +6,7 @@ import type { SerializedEditorState } from "lexical";
 import DeleteCollapsable from "./DeleteCollapsable";
 import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
+import { createPortal } from "react-dom";
 
 type EditTaskDialogProps = {
   boardId: number;
@@ -116,7 +117,7 @@ export default function EditTaskDialog(
 
   // TODO (maddie): need to put a character limit on the description. because it may be too
   // difficult to enforce in the text box itself it could go as a check when save is pressed.
-  return (
+  return createPortal(
     <dialog
       ref={dialogRef}
       onClose={close}
@@ -193,6 +194,7 @@ export default function EditTaskDialog(
         />
 
       </div>
-    </dialog>
+    </dialog>,
+    document.body
   );
 }

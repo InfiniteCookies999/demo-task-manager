@@ -167,6 +167,12 @@ export default function CategoryCard(
   }
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    // Prevent dragging when dialogs are open.
+    if (document.querySelector("dialog:modal")) {
+      e.preventDefault();
+      return;
+    }
+
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(category.id));
 

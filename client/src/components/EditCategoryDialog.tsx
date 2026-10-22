@@ -4,6 +4,7 @@ import { SquarePen, X } from "lucide-react";
 import DeleteCollapsable from "./DeleteCollapsable";
 import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
+import { createPortal } from "react-dom";
 
 
 type EditCategoryDialogProps = {
@@ -90,7 +91,7 @@ export default function EditCategoryDialog(
     close();
   }
 
-  return (
+  return createPortal(
     <dialog
       ref={dialogRef}
       onClose={close}
@@ -193,6 +194,7 @@ export default function EditCategoryDialog(
         />
 
       </div>
-    </dialog>
+    </dialog>,
+    document.body
   );
 }
