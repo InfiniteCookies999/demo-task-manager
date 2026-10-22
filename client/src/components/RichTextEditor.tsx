@@ -128,7 +128,15 @@ function FocusableContentArea({ placeholder }: { placeholder: string }) {
   const [editor] = useLexicalComposerContext();
   return (
     <div className="relative min-h-[200px] border border-t-0 border-zinc-300 rounded-b-lg bg-white p-3 text-xl"
-      onClick={() => editor.focus()}
+      onMouseDown={(e) => {
+        const root = editor.getRootElement();
+
+        if (root && !root.contains(e.target as Node)) {
+          // Prevent bluring parent.
+          e.preventDefault();
+          editor.focus();
+        }
+      }}
     >
       <ContentEditable
         className="relative outline-none"
@@ -180,7 +188,7 @@ export default function RichTexEditor(
         {json ? <LoadEditorState json={json} /> : null}
         {getJSON ? <EditorStateBridge editorStateRef={editorStateRef} /> : null}
 
-        <div className="overflow-hidden rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+        <div className="overflow-hidden rounded-lg focus-within:ring-2 focus-within:ring-blue-300">
           <ToolBar/>
           <FocusableContentArea placeholder={placeholder} />
         </div>
