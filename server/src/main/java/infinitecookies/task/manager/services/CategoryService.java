@@ -2,6 +2,7 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.CategoryColor;
+import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
@@ -14,6 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
@@ -71,22 +75,34 @@ public class CategoryService {
     public void reorderCategories(Long userId, Long boardId, CategoryReorderRequest request) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        List<CategoryReorderRequest.Entry> entries = request.entries();
+        // TODO (maddie): its unclear if this logic catches duplicates. When we write tests we
+        //                should explicitly check for that.
 
-        List<Category> categories = new ArrayList<>();
-        for (CategoryReorderRequest.Entry entry : entries) {
-            Category category = categoryRepository.findByIdAndBoardId(entry.id(), boardId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
-            categories.add(category);
+        List<Category> categories = categoryRepository.findAllByBoardId(boardId);
+        if (categories.size() != request.categoryIds().size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Must specify the re-ordering for all categories");
         }
 
-        long count = categoryRepository.countByBoardId(boardId);
-        if (categories.size() != count) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must specify the re-ordering for all categores");
+        // Reorder the categories to match the request order so the positions may be updated
+        // correctly.
+        Map<Long, Category> categoriesById = categories.stream()
+            .collect(Collectors.toMap(Category::getId, Function.identity()));
+
+        List<Category> orderedCategories = new ArrayList<>();
+        for (Long categoryId : request.categoryIds()) {
+            Category category = categoriesById.get(categoryId);
+
+            if (category == null) {
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "One or more categories not found in board");
+            }
+
+            orderedCategories.add(category);
         }
 
-        for (int i = 0; i < categories.size(); i++) {
-            categories.get(i).setPosition(i);
+        // Update positions in the requested order.
+        for (int i = 0; i < orderedCategories.size(); i++) {
+            orderedCategories.get(i).setPosition(i);
         }
     }
 

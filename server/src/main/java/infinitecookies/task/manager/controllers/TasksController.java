@@ -1,8 +1,6 @@
 package infinitecookies.task.manager.controllers;
 
-import infinitecookies.task.manager.models.dto.CreateTaskRequest;
-import infinitecookies.task.manager.models.dto.TaskResponse;
-import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
+import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.session.SessionUser;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +33,13 @@ public class TasksController {
                            SessionUser sessionUser,
                            @RequestBody TaskUpdateRequest request) {
         service.updateTask(sessionUser.id(), boardId, id, request);
+    }
+
+    @PatchMapping("/reorder")
+    public void reorderTasks(@PathVariable Long boardId,
+                             SessionUser sessionUser,
+                             @RequestBody TaskReorderRequest request) {
+        service.reorderTasks(sessionUser.id(), boardId, request);
     }
 
     @DeleteMapping("/{id}")

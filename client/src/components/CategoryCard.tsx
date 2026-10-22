@@ -1,4 +1,4 @@
-import { act, useEffect, useState } from "react";
+import { useState } from "react";
 import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
 import { Plus, SquarePen } from "lucide-react";
@@ -8,6 +8,7 @@ import { useAppContext } from "../api/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "./TaskCard";
 import createDragClone from "../utils/createDragClone";
+import { reorderTasksInCategory } from "../utils/taskReordering";
 
 type CategoryCardProps = {
   category: Category;
@@ -16,6 +17,7 @@ type CategoryCardProps = {
   tasks: Task[];
   prevCategoryId: number | null;
   nextCategoryId: number | null;
+  tasksByCategory: Record<number, Task[]>;
   setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
   // Category dragging
   draggingCategory: Category | null;
@@ -49,19 +51,41 @@ function HeaderButton(
 }
 
 function DropArea(
-  { category, handleDrop }:
-  { category: Category, handleDrop: (e: React.DragEvent<HTMLDivElement>, targetId: number) => void}
+  {
+    category,
+    handleDrop,
+    setDropTargetCategoryId
+  }:
+  {
+    category: Category,
+    handleDrop: (e: React.DragEvent<HTMLDivElement>, targetId: number) => void,
+    setDropTargetCategoryId: React.Dispatch<React.SetStateAction<number | null>>
+  }
 ) {
   return (
+    // Ensuring the height stretches to the bottom of the viewport so that it does not accidently
+    // think we are no longer dragging over the drop location.
     <div
-      className="w-[400px] h-[190px] shrink-0 rounded-lg bg-zinc-300 border-b border-zinc-600"
-      aria-hidden="true"
+      className="w-[400px] shrink-0 min-h-[calc(100vh-190px)]"
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
       }}
       onDrop={(e) => handleDrop(e, category.id)}
-    />
+      onDragLeave={(e) => {
+        // Ignore drag events between children elements of the same card.
+        if (e.relatedTarget instanceof Node &&
+            e.currentTarget.contains(e.relatedTarget)) {
+          return;
+        }
+        setDropTargetCategoryId(null);
+      }}
+      >
+      <div
+        className="w-[400px] h-[190px] shrink-0 rounded-lg bg-zinc-300 border-b border-zinc-600"
+        aria-hidden="true"
+      />
+    </div>
   );
 }
 
@@ -73,6 +97,7 @@ export default function CategoryCard(
     tasks,
     prevCategoryId,
     nextCategoryId,
+    tasksByCategory,
     setTasksByCategory,
     // Category dragging
     draggingCategory,
@@ -130,6 +155,16 @@ export default function CategoryCard(
 
   // Drag and drop functionality.
   // ----------------------------------
+
+  function clearDragState() {
+    setDraggingCategory(null);
+    setDropTargetCategoryId(null);
+  }
+
+  function clearTaskDragState() {
+    setDraggingTask(null);
+    setTaskDropTarget(null);
+  }
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.dataTransfer.effectAllowed = "move";
@@ -195,14 +230,56 @@ export default function CategoryCard(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          entries: categories.map(({ id }) => ({
-            id
-          }))
+          categoryIds: categories.map(({ id }) => id)
         })
       });
     } catch (err) {
       handleError(err);
     }
+  }
+
+  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedCardId: number | null) {
+    try {
+      await apiFetch(`/api/boards/${category.boardId}/tasks/reorder`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetCategoryId,
+          taskIds: tasks.map(({ id }) => id),
+          movedCardId
+        })
+      });
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  function handleTaskDropInEmptyCategory(
+    sourceId: number,
+    sourceCategoryId: number, targetCategoryId: number
+  ) {
+    const sourceTasks = tasksByCategory[sourceCategoryId];
+
+    const sourceIndex = sourceTasks.findIndex((task) => task.id === sourceId);
+    if (sourceIndex === -1) {
+      return;
+    }
+
+    const updated = reorderTasksInCategory(
+      tasksByCategory,
+      sourceId,
+      sourceCategoryId,
+      targetCategoryId,
+      sourceIndex,
+      0
+    );
+
+    setTasksByCategory(updated);
+
+    const updatedTargetTasks = updated[targetCategoryId];
+    updateTaskOrder(targetCategoryId, updatedTargetTasks, sourceId);
   }
 
   function handleDrop(
@@ -211,9 +288,39 @@ export default function CategoryCard(
   ) {
     e.preventDefault();
 
+    if (draggingTask) {
+      if (!taskDropTarget || taskDropTarget.type !== "category") {
+        return;
+      }
+      // This really should not ever happen.
+      if (targetId !== taskDropTarget.id) {
+        clearTaskDragState();
+        return;
+      }
+
+      const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+
+      const sourceId: number = data.taskId;
+      const sourceCategoryId: number = data.categoryId;
+
+      if (sourceId === targetId) {
+        clearTaskDragState();
+        return;
+      }
+
+      handleTaskDropInEmptyCategory(sourceId, sourceCategoryId, targetId);
+      clearTaskDragState();
+      return;
+    }
+
+    if (!draggingCategory) {
+      return;
+    }
+
     const sourceId = Number(e.dataTransfer.getData("text/plain"));
 
     if (sourceId === targetId) {
+      clearDragState();
       return;
     }
 
@@ -221,6 +328,7 @@ export default function CategoryCard(
     const targetIndex = categories.findIndex((category) => category.id === targetId);
 
     if (sourceIndex === -1 || targetIndex === -1) {
+      clearDragState();
       return;
     }
 
@@ -233,9 +341,9 @@ export default function CategoryCard(
       position: index,
     }));
 
-    setDropTargetCategoryId(null);
     setCategories(updated);
     updateCategoryOrder(updated);
+    clearDragState();
   }
 
   const isDragTarget = dropTargetCategoryId === category.id &&
@@ -250,7 +358,7 @@ export default function CategoryCard(
   return (
     <>
       {(isDragTarget && draggingCategory.position > category.position) &&
-        <DropArea category={category} handleDrop={handleDrop} />}
+        <DropArea category={category} handleDrop={handleDrop} setDropTargetCategoryId={setDropTargetCategoryId} />}
 
       <div
         className={
@@ -264,16 +372,29 @@ export default function CategoryCard(
         data-category-id={category.id}
         draggable
         onDragStart={(e) => handleDragStart(e)}
-        onDragEnd={() => {
-          setDraggingCategory(null);
-          setDropTargetCategoryId(null);
-        }}
+        onDragEnd={clearDragState}
         onDragEnter={(e) => handleDragEnter(e)}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
         }}
         onDrop={(e) => handleDrop(e, category.id)}
+        onDragLeave={(e) => {
+          // Ignore drag events between children elements of the same card.
+          if (e.relatedTarget instanceof Node &&
+              e.currentTarget.contains(e.relatedTarget)) {
+            return;
+          }
+          if (draggingTask) {
+            if (!taskDropTarget || taskDropTarget.type !== "category") {
+              return;
+            }
+            // Clear the task drop target if leaving the category card.
+            if (category.id === taskDropTarget.id) {
+              setTaskDropTarget(null);
+            }
+          }
+        }}
         >
 
         {/* header */}
@@ -293,7 +414,7 @@ export default function CategoryCard(
           </HeaderButton>
         </div>
         {/* task drop area*/}
-        <div className="p-4 flex flex-col gap-2">
+        <div className="p-4 flex flex-col">
           {tasks.map((task) => (
             <TaskCard
               key={task.id}
@@ -301,6 +422,7 @@ export default function CategoryCard(
               task={task}
               tasks={tasks}
               setTasks={setTasks}
+              tasksByCategory={tasksByCategory}
               setTasksByCategory={setTasksByCategory}
               draggingTask={draggingTask}
               setDraggingTask={setDraggingTask}
@@ -315,6 +437,7 @@ export default function CategoryCard(
               task={null}
               tasks={tasks}
               setTasks={setTasks}
+              tasksByCategory={tasksByCategory}
               setTasksByCategory={setTasksByCategory}
               draggingTask={draggingTask}
               setDraggingTask={setDraggingTask}
@@ -334,7 +457,7 @@ export default function CategoryCard(
       )}
 
       {(isDragTarget && draggingCategory.position < category.position) &&
-        <DropArea category={category} handleDrop={handleDrop} />}
+        <DropArea category={category} handleDrop={handleDrop} setDropTargetCategoryId={setDropTargetCategoryId} />}
     </>
   );
 }

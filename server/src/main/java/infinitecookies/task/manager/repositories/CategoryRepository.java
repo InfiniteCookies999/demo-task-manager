@@ -16,4 +16,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     int deleteByIdAndBoardId(Long id, Long boardId);
 
+    List<Category> findAllByBoardId(Long boardId);
+
 }

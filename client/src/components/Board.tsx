@@ -103,6 +103,7 @@ export default function Board({ user, boardId, error }: BoardProps) {
           prevCategoryId={index > 0 ? categories[index - 1].id : null}
           nextCategoryId={index < categories.length - 1 ? categories[index + 1].id : null}
           tasks={tasksByCategory[category.id] ?? []}
+          tasksByCategory={tasksByCategory}
           setTasksByCategory={setTasksByCategory}
           setCategories={setCategories}
           draggingCategory={draggingCategory}

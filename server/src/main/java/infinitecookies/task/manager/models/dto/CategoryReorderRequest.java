@@ -1,7 +1,11 @@
 package infinitecookies.task.manager.models.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
-public record CategoryReorderRequest(List<Entry> entries) {
-    public record Entry(Long id) {}
+public record CategoryReorderRequest(
+    @NotNull
+    List<Long> categoryIds
+) {
 }
