@@ -4,7 +4,8 @@ import useApiError from "./hooks/apiError";
 import { AppContext } from "./contexts/AppContext";
 import type { User } from "./types/user";
 import Board from "./components/Board";
-
+import BoardRoute from "./components/BoardRoute";
+import { Route, Routes } from "react-router-dom";
 
 function App() {
 
@@ -35,7 +36,20 @@ function App() {
 
   return (
     <AppContext.Provider value={{handleError}}>
-      {user ? <Board user={user} boardId={user.ownedBoardId} error={error} /> : null}
+      {user && (
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <Board user={user} boardId={user.ownedBoardId} error={error} />
+            }
+          />
+          <Route
+            path="/boards/:boardId"
+            element={<BoardRoute user={user} error={error} />}
+          />
+        </Routes>
+      )}
     </AppContext.Provider>
   );
 }
