@@ -4,9 +4,10 @@ import type { Task } from "../types/task";
 import RichTexEditor from "./RichTextEditor";
 import type { SerializedEditorState } from "lexical";
 import DeleteCollapsable from "./DeleteCollapsable";
-import { useAppContext } from "../api/AppContext";
+import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import { createPortal } from "react-dom";
+import DialogTitleAndClose from "./DialogTitleAndClose";
 
 type EditTaskDialogProps = {
   boardId: number;
@@ -127,26 +128,15 @@ export default function EditTaskDialog(
       "
     >
       <div className="p-6">
-        <button
-          type="button"
-          onClick={close}
-          className="
-            absolute right-4 top-4
-            rounded-lg p-1.5
-            text-zinc-500
-            hover:bg-zinc-100 hover:text-zinc-800
-            focus:outline-none
-            cursor-pointer
-          "
-          aria-label="Close"
-        >
-          <X className="h-7 w-7" />
-        </button>
-
-        <h2 className="mb-6 text-2xl font-semibold flex items-center gap-3">
-          <SquarePen></SquarePen>
-          <span>Edit Task</span>
-        </h2>
+        <DialogTitleAndClose
+          title={
+            <>
+              <SquarePen></SquarePen>
+              <span>Edit Task</span>
+            </>
+          }
+          onClose={close}
+        />
 
         {/* Name */}
         <div className="mb-3">

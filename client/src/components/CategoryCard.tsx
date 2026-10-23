@@ -4,7 +4,7 @@ import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/cate
 import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
 import type { Task, TaskDropTarget } from "../types/task";
-import { useAppContext } from "../api/AppContext";
+import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "./TaskCard";
 import createDragClone from "../utils/createDragClone";

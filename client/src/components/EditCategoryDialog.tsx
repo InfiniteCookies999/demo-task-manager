@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CATEGORY_COLORS, type Category } from "../types/category";
 import { SquarePen, X } from "lucide-react";
 import DeleteCollapsable from "./DeleteCollapsable";
-import { useAppContext } from "../api/AppContext";
+import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import { createPortal } from "react-dom";
 

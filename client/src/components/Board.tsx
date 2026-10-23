@@ -4,7 +4,7 @@ import CategoryCard from "./CategoryCard";
 import { useEffect, useState } from "react";
 import type { Category } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../api/AppContext";
+import { useAppContext } from "../contexts/AppContext";
 import type { User } from "../types/user";
 import ErrorAlert from "./ErrorAlert";
 import type { Task, TaskDropTarget } from "../types/task";
@@ -63,6 +63,7 @@ export default function Board({ user, boardId, error }: BoardProps) {
       const response = await apiFetch(`/api/boards/${boardId}/categories`, {
         method: "POST"
       });
+      // TODO (maddie): probably need to insert a new record entry for tasks.
       const newCategory: Category = await response.json();
       setCategories((current) => [...current, newCategory]);
     } catch (err) {

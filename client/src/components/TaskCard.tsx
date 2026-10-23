@@ -1,12 +1,14 @@
-import { Circle, CircleCheck, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import type { Task, TaskDropTarget } from "../types/task";
 import { apiFetch } from "../api/apiFetch";
 import type { Category } from "../types/category";
-import { useAppContext } from "../api/AppContext";
+import { useAppContext } from "../contexts/AppContext";
 import { useState } from "react";
 import EditTaskDialog from "./EditTaskDialog";
 import createDragClone from "../utils/createDragClone";
 import { reorderTasksInCategory } from "../utils/taskReordering";
+import ViewTaskDialog from "./ViewTaskDialog";
+import TaskCompletedCircle from "./TaskCompletedCircle";
 
 type TaskProps = {
   category: Category;
@@ -69,6 +71,7 @@ export default function TaskCard(
   const { handleError } = useAppContext();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   async function markCompleted(taskId: number, completed: boolean) {
     try {
@@ -299,13 +302,16 @@ export default function TaskCard(
         (
           <div
             className={
-              `bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 p-4 flex justify-between text-lg
-              mb-2
+              `bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 pl-3 flex items-center justify-between text-lg
+              mb-2 cursor-pointer
               ${(draggingTask && draggingTask.id === task.id) ? "opacity-30" : "opacity-100"}
             `}
             data-task-id={task.id}
             draggable
             onDragStart={(e) => handleDragStart(e)}
+            onClick={() => {
+              setIsViewOpen(true);
+            }}
             >
             <div className="flex items-start gap-2">
               <button
@@ -313,25 +319,26 @@ export default function TaskCard(
                 title={task.completed ? "Mark Not Complete" : "Mark Complete"}
                 aria-label="Mark Complete"
                 className="shrink-0 cursor-pointer"
-                onClick={() => markCompleted(task.id, task.completed)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markCompleted(task.id, task.completed)
+                }}
               >
-                {
-                  task.completed
-                    ? <CircleCheck className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer fill-emerald-300"/>
-                    : <Circle className="w-5.5 h-5.5 shrink-0 translate-y-0.5 cursor-pointer"/>
-                }
+                <TaskCompletedCircle task={task} clickable={false} />
               </button>
 
               <span className={`min-w-0 break-words ${task.completed ? "text-[#777]" : ""}`}>{task.name}</span>
             </div>
 
-            <SquarePen
-              className="cursor-pointer hover:bg-sky-200 rounded-lg shrink-0"
-              onClick={() => {
+            <div
+              className="p-4 rounded-lg cursor-pointer hover:bg-sky-200 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
                 setIsEditOpen(true);
               }}
-              >
-            </SquarePen>
+            >
+              <SquarePen />
+            </div>
           </div>
         )
         }
@@ -353,6 +360,15 @@ export default function TaskCard(
           onClose={() => {
             setIsEditOpen(false);
           }}/>
+      )}
+
+      {(task && isViewOpen) && (
+        <ViewTaskDialog
+          task={task}
+          onClose={() => {
+            setIsViewOpen(false);
+          }}
+        />
       )}
     </>
   );

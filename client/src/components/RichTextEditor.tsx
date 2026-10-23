@@ -3,11 +3,9 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
 import { useExtensionDependency } from "@lexical/react/useExtensionComponent";
 import { useSignalValue } from "@lexical/react/useExtensionSignalValue";
-import { RichTextExtension } from "@lexical/rich-text";
 import { EditorStateExtension } from '@lexical/extension';
 
 import {
-  defineExtension,
   FORMAT_TEXT_COMMAND,
   $getSelection,
   $isRangeSelection,
@@ -16,27 +14,8 @@ import {
   type SerializedEditorState
 } from "lexical";
 import { useEffect, useRef } from "react";
+import { editorExtension } from "../lexical/editorExtension";
 
-const editorExtension = defineExtension({
-  name: "MyEditor",
-  namespace: "MyEditor",
-  dependencies: [
-    RichTextExtension,
-    EditorStateExtension
-  ],
-  theme: {
-    text: {
-      bold: 'editor-text-bold',
-      code: 'editor-text-code',
-      hashtag: 'editor-text-hashtag',
-      italic: 'editor-text-italic',
-      overflowed: 'editor-text-overflowed',
-      strikethrough: 'editor-text-strikethrough',
-      underline: 'editor-text-underline',
-      underlineStrikethrough: 'editor-text-underlineStrikethrough',
-    },
-  }
-});
 
 function ToolBar() {
   //https://stackblitz.com/github/facebook/lexical/tree/main/examples/react-rich?file=src%2FApp.tsx,src%2FStyleImportExportExtension.ts
