@@ -63,9 +63,9 @@ export default function Board({ user, boardId, error }: BoardProps) {
       const response = await apiFetch(`/api/boards/${boardId}/categories`, {
         method: "POST"
       });
-      // TODO (maddie): probably need to insert a new record entry for tasks.
       const newCategory: Category = await response.json();
       setCategories((current) => [...current, newCategory]);
+      setTasksByCategory((current) => ({...current, [newCategory.id]: [] }));
     } catch (err) {
       handleError(err);
     }
