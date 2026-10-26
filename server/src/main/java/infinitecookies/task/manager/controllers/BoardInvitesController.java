@@ -5,6 +5,7 @@ import infinitecookies.task.manager.models.dto.SendInviteRequest;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.services.InviteService;
 import infinitecookies.task.manager.session.SessionUser;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class BoardInvitesController {
     @PostMapping("/send")
     public void sendInvite(@PathVariable Long boardId,
                            SessionUser sessionUser,
-                           @RequestBody SendInviteRequest request) {
+                           @Valid @RequestBody SendInviteRequest request) {
         service.createSentInvite(sessionUser.id(), boardId, request);
     }
 
@@ -34,6 +35,7 @@ public class BoardInvitesController {
         SessionUser sessionUser,
 
         @RequestParam
+        @Valid
         @NotBlank
         @Size(min = 2, max = User.MAX_USERNAME_LENGTH)
         String username

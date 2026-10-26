@@ -1,10 +1,9 @@
 package infinitecookies.task.manager.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -12,6 +11,7 @@ import java.util.List;
 @Setter
 public class User {
 
+    public static final int MIN_USERNAME_LENGTH = 2;
     public static final int MAX_USERNAME_LENGTH = 20;
 
     @Id
@@ -22,19 +22,11 @@ public class User {
     private String sessionId;
 
     @Column(nullable = false, length = MAX_USERNAME_LENGTH)
+    @Size(min = MIN_USERNAME_LENGTH, max = MAX_USERNAME_LENGTH)
     private String username;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.REMOVE }, orphanRemoval = true)
     @JoinColumn(name = "default_board_id", nullable = false)
     private Board ownedBoard;
-
-//    @OneToMany(mappedBy = "invitedBy")
-//    private List<Invite> sentInvites;
-//
-//    @OneToMany(mappedBy = "invitedUser")
-//    private List<Invite> receivedInvites;
-
-//    @OneToMany(mappedBy = "invitedUser", cascade = CascadeType.REMOVE, orphanRemoval = true)
-//    private List<Invite> invites;
 
 }

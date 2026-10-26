@@ -6,6 +6,7 @@ import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
 import infinitecookies.task.manager.services.CategoryService;
 import infinitecookies.task.manager.session.SessionUser;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,14 +29,14 @@ public class CategoriesController {
     @PatchMapping("/{id}")
     public void updateCategory(@PathVariable Long boardId, @PathVariable Long id,
                                SessionUser sessionUser,
-                               @RequestBody CategoryUpdateRequest request) {
+                               @Valid @RequestBody CategoryUpdateRequest request) {
         service.updateCategory(sessionUser.id(), boardId, id, request);
     }
 
     @PatchMapping("/reorder")
     public void reorderCategories(@PathVariable Long boardId,
                                   SessionUser sessionUser,
-                                  @RequestBody CategoryReorderRequest request) {
+                                  @Valid @RequestBody CategoryReorderRequest request) {
         service.reorderCategories(sessionUser.id(), boardId, request);
     }
 

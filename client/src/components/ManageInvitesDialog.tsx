@@ -6,7 +6,7 @@ import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 
-type ViewInvitesDialogProps = {
+type ManageInvitesDialogProps = {
   invites: Invite[];
   setInvites: React.Dispatch<React.SetStateAction<Invite[]>>;
   onClose: () => void;
@@ -18,7 +18,7 @@ export default function ManageInvitesDialog(
     setInvites,
     onClose
   }:
-  ViewInvitesDialogProps
+  ManageInvitesDialogProps
 ) {
 
   const { handleError } = useAppContext();
@@ -75,7 +75,7 @@ export default function ManageInvitesDialog(
           >
             <div className="flex flex-col gap-2">
               <span className="text-xl">Invited to {invite.boardOwnerUsername}'s board</span>
-              <span className="text-[#666]">Invited by: {invite.invitedByUsername}</span>
+              <span className="text-[#666]">Invited by: {invite.invitedByUsername + "#" + invite.id}</span>
             </div>
 
             <div className="flex flex-col gap-4">

@@ -12,15 +12,17 @@ import UserNavButton from "./UserNavButton";
 import SendInvitesDialog from "./SendInvitesDialog";
 import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
+import ChangeUsernameDialog from "./ChangeUsernameDialog";
 
 
 type BoardProps = {
   user: User;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   boardId: number;
   error: string;
 };
 
-export default function Board({ user, boardId, error }: BoardProps) {
+export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const { handleError } = useAppContext();
 
@@ -42,6 +44,8 @@ export default function Board({ user, boardId, error }: BoardProps) {
 
   const [sendInvitesOpen, setSendInvitesOpen] = useState(false);
   const [viewInvitesOpen, setViewInvitesOpen] = useState(false);
+
+  const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
   useEffect(() => {
     async function fetchCategoriesAndTasks() {
@@ -101,6 +105,7 @@ export default function Board({ user, boardId, error }: BoardProps) {
                 invites={invites}
                 setInvites={setInvites}
                 setViewInvitesOpen={setViewInvitesOpen}
+                setChangeUsernameOpen={setChangeUsernameOpen}
               />
           </div>
         </div>
@@ -142,6 +147,9 @@ export default function Board({ user, boardId, error }: BoardProps) {
           setInvites={setInvites}
           onClose={() => {setViewInvitesOpen(false)}}
         />
+      }
+      {changeUsernameOpen &&
+        <ChangeUsernameDialog user={user} setUser={setUser} onClose={() => setChangeUsernameOpen(false)} />
       }
     </>
   );

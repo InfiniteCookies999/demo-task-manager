@@ -3,6 +3,7 @@ package infinitecookies.task.manager.controllers;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.session.SessionUser;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class TasksController {
 
     @PostMapping
     public TaskResponse createTask(@PathVariable Long boardId, SessionUser sessionUser,
-                                   @RequestBody CreateTaskRequest request) {
+                                   @Valid @RequestBody CreateTaskRequest request) {
         return service.createTask(sessionUser.id(), boardId, request);
     }
 
@@ -31,14 +32,14 @@ public class TasksController {
     @PatchMapping("/{id}")
     public void updateTask(@PathVariable Long boardId, @PathVariable Long id,
                            SessionUser sessionUser,
-                           @RequestBody TaskUpdateRequest request) {
+                           @Valid @RequestBody TaskUpdateRequest request) {
         service.updateTask(sessionUser.id(), boardId, id, request);
     }
 
     @PatchMapping("/reorder")
     public void reorderTasks(@PathVariable Long boardId,
                              SessionUser sessionUser,
-                             @RequestBody TaskReorderRequest request) {
+                             @Valid @RequestBody TaskReorderRequest request) {
         service.reorderTasks(sessionUser.id(), boardId, request);
     }
 

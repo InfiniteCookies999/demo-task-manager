@@ -22,7 +22,7 @@ function App() {
 
     async function fetchUser() {
       try {
-        const userResponse = await apiFetch("/api/users/session", {
+        const userResponse = await apiFetch("/api/user/session", {
           method: "POST"
         });
         const user: User = await userResponse.json();
@@ -41,7 +41,7 @@ function App() {
           <Route
             path="*"
             element={
-              <Board user={user} boardId={user.ownedBoardId} error={error} />
+              <Board user={user} setUser={setUser} boardId={user.ownedBoardId} error={error} />
             }
           />
           <Route

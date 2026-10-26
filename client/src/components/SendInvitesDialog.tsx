@@ -167,7 +167,7 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
                           {statusMessage}
                         </span>
                         <span className="text-lg text-zinc-700">
-                          {user.username}
+                          {user.username + "#" + user.id}
                         </span>
                       </div>
                     </button>
@@ -186,65 +186,3 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
     document.body
   );
 }
-
-
-
-/*
-<div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-          {searchedUsername.trim().length >= 2 ? (
-            isSearching ? (
-              <p className="px-4 py-3 text-sm text-zinc-500">Searching users...</p>
-            ) : (
-              foundUsers.length > 0 ? (
-                foundUsers.map((user) => {
-
-                  const statusMessage = user.alreadyMember
-                    ? "Already a member"
-                    : user.alreadyInvited
-                      ? "Invite pending"
-                      : "Invite";
-
-                  const statusIcon = user.alreadyMember
-                    ? <UserRoundPlus className="w-6 h-6 shrink-0 text-emerald-600"></UserRoundPlus>
-                    : user.alreadyInvited
-                      ? <Clock8 className="w-6 h-6 shrink-0 text-stone-500"></Clock8>
-                      : null;
-
-                  const disabled = user.alreadyInvited || user.alreadyMember;
-
-                  return (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => {
-                        if (user.alreadyInvited || user.alreadyMember) return;
-                        sendInvite(user.id);
-                      }}
-                      className={`block w-full px-4 py-3 text-left
-                          ${
-                            disabled
-                              ? "bg-zinc-50"
-                              : "cursor-pointer hover:bg-sky-100"
-                          }
-                        `}
-                    >
-                      <div className="flex items-center gap-2">
-                        {statusIcon}
-                        <span className="text-lg font-bold">
-                          {statusMessage}
-                        </span>
-                        <span className="text-lg text-zinc-700">
-                          {user.username}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="px-4 py-3 text-sm text-zinc-600">No users found.</p>
-              )
-            )
-          ) : (
-            <p className="px-4 py-3 text-sm text-zinc-600">Type in a username of at least 2 characters.</p>
-          )}
-        </div>*/

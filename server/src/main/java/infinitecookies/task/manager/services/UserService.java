@@ -2,6 +2,7 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.dto.ChangeUsernameRequest;
 import infinitecookies.task.manager.models.dto.UserAccountResponse;
 import infinitecookies.task.manager.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,13 @@ public class UserService {
             .orElseGet(() -> createOrRetrieve(sessionId));
     }
 
+    @Transactional
+    public void changeUsername(Long userId, ChangeUsernameRequest request) {
+        User user = repository.findById(userId)
+            .orElseThrow(); // This is an internal error since it came from SessionUser
+        user.setUsername(request.username());
+    }
+
     private UserAccountResponse createOrRetrieve(String sessionId) {
         // Deal with duplicate request coming in nearly the same time. It's possible
         // in that case for the unique constraint on the session id to fail because
@@ -43,7 +51,7 @@ public class UserService {
 
         User user = new User();
         user.setSessionId(sessionId);
-        user.setUsername(""); // Make sure not to violate the non-null constraint.
+        user.setUsername("guest");
 
         // Create a default board so the user can start interacting right away.
         Board ownedBoard = new Board();
@@ -51,10 +59,7 @@ public class UserService {
         ownedBoard.setAllowedUsers(Set.of(user));
         user.setOwnedBoard(ownedBoard);
 
-        // Save first to generate the database ID.
         user = repository.save(user);
-        user.setUsername("guest#" + user.getId());
-
         return UserAccountResponse.fromUser(user);
     }
 }
