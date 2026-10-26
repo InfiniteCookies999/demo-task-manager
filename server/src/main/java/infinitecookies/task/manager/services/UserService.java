@@ -3,7 +3,6 @@ package infinitecookies.task.manager.services;
 import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.UserAccountResponse;
-import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,17 +11,17 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 
 @Service
-public class UserAccountService {
+public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserRepository repository;
 
-    public UserAccountService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserService(UserRepository repository) {
+        this.repository = repository;
     }
 
     @Transactional
     public UserAccountResponse getOrCreateAccount(String sessionId) {
-        return userRepository.findBySessionId(sessionId)
+        return repository.findBySessionId(sessionId)
             .map(UserAccountResponse::fromUser)
             .orElseGet(() -> createOrRetrieve(sessionId));
     }
@@ -34,7 +33,7 @@ public class UserAccountService {
         try {
             return createGuestAccount(sessionId);
         } catch (DataIntegrityViolationException e) {
-            return userRepository.findBySessionId(sessionId)
+            return repository.findBySessionId(sessionId)
                 .map(UserAccountResponse::fromUser)
                 .orElseThrow(() -> e);
         }
@@ -53,7 +52,7 @@ public class UserAccountService {
         user.setOwnedBoard(ownedBoard);
 
         // Save first to generate the database ID.
-        user = userRepository.save(user);
+        user = repository.save(user);
         user.setUsername("guest#" + user.getId());
 
         return UserAccountResponse.fromUser(user);

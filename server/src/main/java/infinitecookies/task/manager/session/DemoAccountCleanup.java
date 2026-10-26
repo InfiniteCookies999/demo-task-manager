@@ -1,7 +1,9 @@
 package infinitecookies.task.manager.session;
 
+import infinitecookies.task.manager.models.Invite;
 import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.repositories.BoardRepository;
+import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.ApplicationArguments;
@@ -15,11 +17,14 @@ public class DemoAccountCleanup implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final BoardRepository boardRepository;
+    private final InviteRepository inviteRepository;
 
     public DemoAccountCleanup(UserRepository userRepository,
-                              BoardRepository boardRepository) {
+                              BoardRepository boardRepository,
+                              InviteRepository inviteRepository) {
         this.userRepository = userRepository;
         this.boardRepository = boardRepository;
+        this.inviteRepository = inviteRepository;
     }
 
     @Override
@@ -34,10 +39,19 @@ public class DemoAccountCleanup implements ApplicationRunner {
         // is a demo application we are simply going to delete all the users
         // to cleanup space.
 
+        // clearing the allowed users here should not delete the invites.
         List<User> users = userRepository.findAll();
         for (User user : users) {
             user.getOwnedBoard().getAllowedUsers().clear();
         }
+
+        // Must explicitly clear invites from board for it to delete the
+        // user relationships.
+        List<Invite> invites = inviteRepository.findAll();
+        for (Invite invite : invites) {
+            invite.getBoard().getInvites().remove(invite);
+        }
+
         boardRepository.flush();
 
         // Must call deleteAll() over deleteAllInBatch() because cascade removal

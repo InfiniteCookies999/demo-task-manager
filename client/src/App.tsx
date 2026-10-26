@@ -22,7 +22,7 @@ function App() {
 
     async function fetchUser() {
       try {
-        const userResponse = await apiFetch("/api/session", {
+        const userResponse = await apiFetch("/api/users/session", {
           method: "POST"
         });
         const user: User = await userResponse.json();

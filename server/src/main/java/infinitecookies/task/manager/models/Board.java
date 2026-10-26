@@ -36,6 +36,9 @@ public class Board {
     private Set<User> allowedUsers = new HashSet<>();
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Invite> invites;
+
+    @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @Size(max = MAX_CATEGORIES)
     private List<Category> categories;
 

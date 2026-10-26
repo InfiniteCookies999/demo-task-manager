@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -25,5 +27,14 @@ public class User {
     @OneToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.REMOVE }, orphanRemoval = true)
     @JoinColumn(name = "default_board_id", nullable = false)
     private Board ownedBoard;
+
+//    @OneToMany(mappedBy = "invitedBy")
+//    private List<Invite> sentInvites;
+//
+//    @OneToMany(mappedBy = "invitedUser")
+//    private List<Invite> receivedInvites;
+
+//    @OneToMany(mappedBy = "invitedUser", cascade = CascadeType.REMOVE, orphanRemoval = true)
+//    private List<Invite> invites;
 
 }

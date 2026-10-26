@@ -45,14 +45,14 @@ export default function ViewTaskDialog({ task, onClose }: ViewTaskDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   // Reset the form whenever the dialog is opened for a task.
-    useEffect(() => {
-      dialogRef.current?.showModal();
-    }, [task]);
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, [task]);
 
-    function close() {
-      dialogRef.current?.close();
-      onClose();
-    }
+  function close() {
+    dialogRef.current?.close();
+    onClose();
+  }
 
   return createPortal(
     <dialog

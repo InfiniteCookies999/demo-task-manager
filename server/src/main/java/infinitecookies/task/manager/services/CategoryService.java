@@ -26,9 +26,10 @@ public class CategoryService {
     private final BoardRepository boardRepository;
     private final BoardService boardService;
 
-    public CategoryService(CategoryRepository repository, BoardRepository boardRepository,
+    public CategoryService(CategoryRepository categoryRepository,
+                           BoardRepository boardRepository,
                            BoardService boardService) {
-        this.categoryRepository = repository;
+        this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
     }
