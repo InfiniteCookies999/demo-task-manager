@@ -13,6 +13,7 @@ import SendInvitesDialog from "./SendInvitesDialog";
 import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
 import ChangeUsernameDialog from "./ChangeUsernameDialog";
+import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
 
 
 type BoardProps = {
@@ -46,6 +47,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
   const [viewInvitesOpen, setViewInvitesOpen] = useState(false);
 
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
+
+  useBoardWebSocket(boardId);
 
   useEffect(() => {
     async function fetchCategoriesAndTasks() {

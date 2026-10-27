@@ -10,5 +10,4 @@ public record ChangeUsernameRequest(
     @Size(min = User.MIN_USERNAME_LENGTH, max = User.MAX_USERNAME_LENGTH)
     @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "Username must be alphanumeric")
     String username
-) {
-}
+) {}

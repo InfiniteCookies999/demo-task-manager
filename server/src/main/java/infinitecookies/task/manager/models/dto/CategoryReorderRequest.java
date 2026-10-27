@@ -7,5 +7,4 @@ import java.util.List;
 public record CategoryReorderRequest(
     @NotNull
     List<Long> categoryIds
-) {
-}
+) {}
