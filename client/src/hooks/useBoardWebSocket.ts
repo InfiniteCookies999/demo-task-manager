@@ -1,18 +1,16 @@
 import { Client } from "@stomp/stompjs";
 import { useEffect } from "react";
+import type { BoardEvent } from "../types/event";
 
 
-export function useBoardWebSocket(boardId: number) {
+export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) => void) {
 
   useEffect(() => {
 
     const protocol =
-      //window.location.protocol === "https:" ? "wss:" : "ws:";
-    "http:";
+      window.location.protocol === "https:" ? "wss:" : "ws:";
 
     const url = `${protocol}//${window.location.host}/ws`
-
-    console.log("attempting to connect to websocket: " + url);
 
     const client = new Client({
       brokerURL: url,
@@ -22,9 +20,8 @@ export function useBoardWebSocket(boardId: number) {
         console.log("Connected to websocket");
 
         client.subscribe(`/topic/board/${boardId}`, (message) => {
-          const event = JSON.parse(message.body);
-          console.log("event recieved");
-          console.log(event);
+          const event: BoardEvent = JSON.parse(message.body);
+          onEvent(event);
         });
       },
 
@@ -40,6 +37,7 @@ export function useBoardWebSocket(boardId: number) {
 
     });
 
+    console.log("attempting web socket connection");
     client.activate();
 
     return () => {

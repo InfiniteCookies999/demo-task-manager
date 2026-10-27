@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react";
 import ActionButton from "./ActionButton";
 import CategoryCard from "./CategoryCard";
-import { useEffect, useState } from "react";
-import type { Category } from "../types/category";
+import { useCallback, useEffect, useState } from "react";
+import type { Category, CategoryColor } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import type { User } from "../types/user";
@@ -14,6 +14,8 @@ import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
 import ChangeUsernameDialog from "./ChangeUsernameDialog";
 import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
+import type { BoardEvent } from "../types/event";
+import { reorderCategories } from "../utils/categoryReordering";
 
 
 type BoardProps = {
@@ -48,7 +50,59 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
-  useBoardWebSocket(boardId);
+  const addCategory = useCallback((category: Category) => {
+    setCategories((current) => {
+      // Prevent duplicates from websockets.
+      if (current.some((otherCategory) => otherCategory.id === category.id)) {
+        console.log("category already exists");
+        return current;
+      }
+      // Ensure order since local response may not sync with websockets entirely.
+      return [...current, category].sort((a, b) => a.position - b.position);
+    });
+    setTasksByCategory((current) => {
+      if (category.id in current) { // Prevent duplicates from websockets.
+        return current;
+      }
+      return { ... current, [category.id]: [] };
+    })
+  }, []);
+
+  const handleBoardEvent = useCallback((event: BoardEvent) => {
+    switch (event.type) {
+      case "CATEGORY_CREATED": {
+        addCategory(event.payload.category);
+        break;
+      }
+      case "CATEGORY_UPDATED": {
+        const { categoryId, name, color }:
+          { categoryId: number, name?: string, color?: CategoryColor } = event.payload;
+
+        setCategories((current) =>
+          current.map((category) => category.id === categoryId
+            ? {
+                ...category,
+                name: name ?? category.name,
+                color: color ?? category.color
+              }
+            : category
+         ));
+        break;
+      }
+      case "CATEGORIES_REORDERED": {
+        setCategories((current) => reorderCategories(current, event.payload.categoryIds));
+        break;
+      }
+      case "CATEGORY_DELETED": {
+        const categoryId: number = event.payload.categoryId;
+        setCategories((current) =>
+          current.filter((category) => category.id !== categoryId));
+        break;
+      }
+    }
+  }, []);
+
+  useBoardWebSocket(boardId, handleBoardEvent);
 
   useEffect(() => {
     async function fetchCategoriesAndTasks() {
@@ -82,8 +136,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         method: "POST"
       });
       const newCategory: Category = await response.json();
-      setCategories((current) => [...current, newCategory]);
-      setTasksByCategory((current) => ({...current, [newCategory.id]: [] }));
+      addCategory(newCategory);
     } catch (err) {
       handleError(err);
     }

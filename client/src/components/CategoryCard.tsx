@@ -347,6 +347,8 @@ export default function CategoryCard(
       position: index,
     }));
 
+    // Optimistically update. This could result in order mismatch in the case of multiple
+    // drags but waiting on the server response in this case could lead to a poor experience.
     setCategories(updated);
     updateCategoryOrder(updated);
     clearDragState();

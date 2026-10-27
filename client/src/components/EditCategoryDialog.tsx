@@ -52,6 +52,7 @@ export default function EditCategoryDialog(
       return;
     }
 
+    // TODO (maddie): optimistically updating here could be a problem.
     setCategories((current) =>
       current.map((otherCategory) => otherCategory.id === category.id
         ? {...otherCategory, name: editName, color: editColor} : otherCategory)
