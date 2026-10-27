@@ -1,9 +1,11 @@
 import { Client } from "@stomp/stompjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { BoardEvent } from "../types/event";
 
 
 export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) => void) {
+
+  const [ connected, setConnected ] = useState(false);
 
   useEffect(() => {
 
@@ -17,12 +19,11 @@ export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) 
       reconnectDelay: 5000, // If connection is lost try again after 5 seconds.
 
       onConnect: () => {
-        console.log("Connected to websocket");
-
         client.subscribe(`/topic/board/${boardId}`, (message) => {
           const event: BoardEvent = JSON.parse(message.body);
           onEvent(event);
         });
+        setConnected(true);
       },
 
       onStompError: (frame) => {
@@ -37,11 +38,12 @@ export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) 
 
     });
 
-    console.log("attempting web socket connection");
     client.activate();
 
     return () => {
       client.deactivate();
     };
   }, [boardId]);
+
+  return { connected };
 }

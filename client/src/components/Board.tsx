@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import ActionButton from "./ActionButton";
 import CategoryCard from "./CategoryCard";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Category, CategoryColor } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
@@ -50,6 +50,9 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
+  const bufferedEvents = useRef<BoardEvent[]>([]);
+  const isBufferingEvents = useRef(true);
+
   const addCategory = useCallback((category: Category) => {
     setCategories((current) => {
       // Prevent duplicates from websockets.
@@ -68,7 +71,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     })
   }, []);
 
-  const handleBoardEvent = useCallback((event: BoardEvent) => {
+  const applyBoardEvent = useCallback((event: BoardEvent) => {
     switch (event.type) {
       case "CATEGORY_CREATED": {
         addCategory(event.payload.category);
@@ -100,16 +103,33 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         break;
       }
     }
-  }, []);
+  }, [addCategory]);
 
-  useBoardWebSocket(boardId, handleBoardEvent);
+  const handleBoardEvent = useCallback((event: BoardEvent) => {
+    if (isBufferingEvents.current) {
+      bufferedEvents.current.push(event);
+      return;
+    }
+
+    applyBoardEvent(event);
+  }, [applyBoardEvent]);
+
+  const { connected } = useBoardWebSocket(boardId, handleBoardEvent);
 
   useEffect(() => {
+    // Ensure websocket connection before fetching main content otherwise events may happen
+    // while not connected leading to missed events.
+    if (!connected) {
+      return;
+    }
+
+    isBufferingEvents.current = true;
+    bufferedEvents.current = [];
+
     async function fetchCategoriesAndTasks() {
       try {
         const categoriesResponse = await apiFetch(`/api/boards/${boardId}/categories`);
         const categories: Category[] = await categoriesResponse.json();
-        setCategories(categories);
 
         const tasksResponse = await apiFetch(`/api/boards/${boardId}/tasks`);
         const tasks: Task[] = await tasksResponse.json();
@@ -122,13 +142,25 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         for (const task of tasks) {
           groupedTasks[task.categoryId].push(task);
         }
+
+        setCategories(categories);
         setTasksByCategory(groupedTasks);
+
+        // Apply the events that took place during the fetch.
+        const events = bufferedEvents.current;
+        bufferedEvents.current = [];
+        isBufferingEvents.current = false;
+
+        for (const event of events) {
+          applyBoardEvent(event);
+        }
+
       } catch (err) {
         handleError(err);
       }
     }
     fetchCategoriesAndTasks();
-  }, [boardId]);
+  }, [connected, boardId, applyBoardEvent]);
 
   async function createCategory() {
     try {
