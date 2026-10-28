@@ -6,7 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { useState } from "react";
 import EditTaskDialog from "./EditTaskDialog";
 import createDragClone from "../utils/createDragClone";
-import { reorderTasksInCategory } from "../utils/taskReordering";
+import { localReorderTasksInCategory } from "../utils/taskReordering";
 import ViewTaskDialog from "./ViewTaskDialog";
 import TaskCompletedCircle from "./TaskCompletedCircle";
 
@@ -156,7 +156,7 @@ export default function TaskCard(
     setTaskDropTarget({ type: "task", id: task.id });
   }
 
-  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedCardId: number | null) {
+  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedTaskId: number | null) {
     try {
       await apiFetch(`/api/boards/${category.boardId}/tasks/reorder`, {
         method: "PATCH",
@@ -166,7 +166,7 @@ export default function TaskCard(
         body: JSON.stringify({
           targetCategoryId,
           taskIds: tasks.map(({ id }) => id),
-          movedCardId
+          movedTaskId
         })
       });
     } catch (err) {
@@ -191,6 +191,20 @@ export default function TaskCard(
       position: index,
     }));
 
+    // Optmistic moving problems:
+    // 1. We move a card that another user already moved to a different category.
+    //    Now our change is rejected but we have no rollback strategy.
+    // 2. Another user moves a different card out to a different category so now we
+    //    reorder the incorrect number of cards.
+    // 3. Another user adds a different card to this category so now we reorder the
+    //    incorrect number of cards.
+    //
+    // Always rolling back would be problematic we could override newer changes.
+    //
+    // Possible solution:
+    // If the server responds with an error send a request to the server asking it
+    // where the card we just tried to move should be.
+    //
     setTasks(updated);
     updateTaskOrder(targetCategoryId, updated, null);
   }
@@ -209,7 +223,7 @@ export default function TaskCard(
       return;
     }
 
-    const updated = reorderTasksInCategory(
+    const updated = localReorderTasksInCategory(
       tasksByCategory,
       sourceId,
       sourceCategoryId,
@@ -218,6 +232,8 @@ export default function TaskCard(
       targetIndex
     );
 
+    // Optimistic moving problems are similar to what is described in handleDropInSameCategory()
+    // The same proposed solution may be viable.
     setTasksByCategory(updated);
 
     const updatedTargetTasks = updated[targetCategoryId];
@@ -264,9 +280,10 @@ export default function TaskCard(
 
   return (
     <>
-      {/* Wrapped in another outer div so that it can more cleanly detect drag enters/leaves from
-       * the combination of the drop area and the dragged over card.
-       */}
+      {/*
+        Wrapped in another outer div so that it can more cleanly detect drag enters/leaves from
+        the combination of the drop area and the dragged over card.
+      */}
       <div
         onDragLeave={(e) => {
           // Ignore drag events between children elements of the same card.
@@ -298,6 +315,8 @@ export default function TaskCard(
         ) &&
           <DropArea className="mb-2" task={task} category={category} handleDrop={handleDrop} />}
 
+
+        {/* Displaying the actual task */}
         {task &&
         (
           <div
@@ -357,6 +376,7 @@ export default function TaskCard(
           boardId={category.boardId}
           task={task}
           setTasks={setTasks}
+          setTasksByCategory={setTasksByCategory}
           onClose={() => {
             setIsEditOpen(false);
           }}/>

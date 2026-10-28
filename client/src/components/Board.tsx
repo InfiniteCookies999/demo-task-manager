@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import ActionButton from "./ActionButton";
 import CategoryCard from "./CategoryCard";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Category, CategoryColor } from "../types/category";
+import type { Category } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import type { User } from "../types/user";
@@ -14,8 +14,12 @@ import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
 import ChangeUsernameDialog from "./ChangeUsernameDialog";
 import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
-import type { BoardEvent } from "../types/event";
+import { type BoardEvent, type CategoryUpdatedEventPayload, type TasksReorderedEventPayload, type TaskUpdatedEventPayload } from "../types/event";
 import { reorderCategories } from "../utils/categoryReordering";
+import { removeCategoryForDelete } from "../utils/categoryDeleting";
+import { removeTaskForDelete } from "../utils/taskDeleting";
+import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
+import { findTaskCategoryId } from "../utils/taskFinding";
 
 
 type BoardProps = {
@@ -57,7 +61,6 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     setCategories((current) => {
       // Prevent duplicates from websockets.
       if (current.some((otherCategory) => otherCategory.id === category.id)) {
-        console.log("category already exists");
         return current;
       }
       // Ensure order since local response may not sync with websockets entirely.
@@ -71,6 +74,25 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     })
   }, []);
 
+  const addTask = useCallback((task: Task) => {
+    setTasksByCategory((current) => {
+      if (!(task.categoryId in current)) {
+        return current;
+      }
+      // Prevent duplicates from websockets.
+      if (current[task.categoryId].some((otherTask) => otherTask.id === task.id)) {
+        return current;
+      }
+      // Ensure order since local response may not sync with websockets entirely.
+      const updatedTasks = [...current[task.categoryId], task]
+        .sort((a, b) => a.position - b.position);
+      return {
+        ...current,
+        [task.categoryId]: updatedTasks
+      };
+    })
+  }, []);
+
   const applyBoardEvent = useCallback((event: BoardEvent) => {
     switch (event.type) {
       case "CATEGORY_CREATED": {
@@ -78,8 +100,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         break;
       }
       case "CATEGORY_UPDATED": {
-        const { categoryId, name, color }:
-          { categoryId: number, name?: string, color?: CategoryColor } = event.payload;
+        const { categoryId, name, color }: CategoryUpdatedEventPayload = event.payload;
 
         setCategories((current) =>
           current.map((category) => category.id === categoryId
@@ -98,8 +119,74 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
       }
       case "CATEGORY_DELETED": {
         const categoryId: number = event.payload.categoryId;
-        setCategories((current) =>
-          current.filter((category) => category.id !== categoryId));
+        setCategories((current) => removeCategoryForDelete(categoryId, current));
+        break;
+      }
+
+      case "TASK_CREATED": {
+        addTask(event.payload.task);
+        break;
+      }
+      case "TASK_UPDATED": {
+        const {
+          categoryId,
+          taskId,
+          name,
+          description,
+          completed
+        }: TaskUpdatedEventPayload = event.payload;
+
+        setTasksByCategory((current) => {
+
+          let foundCategoryId = findTaskCategoryId(current, taskId, categoryId);
+          if (!foundCategoryId) {
+            return current;
+          }
+
+          const tasks = current[foundCategoryId];
+          const reordered = tasks
+            .map((task) => task.id === taskId
+              ? {
+                  ...task,
+                  name: name ?? task.name,
+                  description: description ?? task.description,
+                  completed: completed ?? task.completed
+                }
+              : task
+            );
+
+          return {
+            ...current,
+            [foundCategoryId]: reordered
+          };
+        });
+        break;
+      }
+      case "TASKS_REORDERED": {
+        const {
+          sourceCategoryId,
+          targetCategoryId,
+          sourceTaskIds,
+          targetTaskIds,
+          movedTaskId
+        }: TasksReorderedEventPayload = event.payload;
+
+        setTasksByCategory((current) =>
+          reorderTasksInCategoryFromResponse(
+            current,
+            sourceCategoryId,
+            targetCategoryId,
+            sourceTaskIds,
+            targetTaskIds,
+            movedTaskId
+        ));
+
+        break;
+      }
+      case "TASK_DELETED": {
+        const taskId: number = event.payload.taskId;
+        const categoryId: number = event.payload.categoryId;
+        setTasksByCategory((current) => removeTaskForDelete(taskId, categoryId, current));
         break;
       }
     }
@@ -210,6 +297,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
             tasks={tasksByCategory[category.id] ?? []}
             tasksByCategory={tasksByCategory}
             setTasksByCategory={setTasksByCategory}
+            addTask={addTask}
             setCategories={setCategories}
             draggingCategory={draggingCategory}
             setDraggingCategory={setDraggingCategory}

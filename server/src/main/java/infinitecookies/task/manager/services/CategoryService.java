@@ -2,14 +2,13 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.CategoryColor;
-import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
 import infinitecookies.task.manager.models.websock.CategoriesReorderedEvent;
 import infinitecookies.task.manager.models.websock.CategoryCreatedEvent;
 import infinitecookies.task.manager.models.websock.CategoryDeletedEvent;
-import infinitecookies.task.manager.models.websock.CategoryUpdateEvent;
+import infinitecookies.task.manager.models.websock.CategoryUpdatedEvent;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import jakarta.transaction.Transactional;
@@ -87,7 +86,7 @@ public class CategoryService {
         }
 
         applicationEventPublisher.publishEvent(
-            new CategoryUpdateEvent(boardId, id, request.name(), request.color()));
+            new CategoryUpdatedEvent(boardId, id, request.name(), request.color()));
     }
 
     @Transactional

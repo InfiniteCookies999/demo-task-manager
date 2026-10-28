@@ -13,5 +13,5 @@ public record TaskReorderRequest(
 
     // If a card is being moved from one category to
     // another.
-    Long movedCardId
+    Long movedTaskId
 ) {}
