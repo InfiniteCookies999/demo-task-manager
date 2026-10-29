@@ -47,8 +47,14 @@ public class TaskService {
         Category category = categoryRepository.findByIdAndBoardId(request.categoryId(), boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
-        // This is fine the user would have to create/delete over 2 billion times.
         int nextPosition = (int) taskRepository.countByCategoryId(request.categoryId());
+
+        if (nextPosition >= Category.MAX_TASKS) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A category cannot have more than " + Category.MAX_TASKS + " tasks"
+            );
+        }
 
         Task task = new Task();
         task.setName(request.name());
@@ -113,6 +119,13 @@ public class TaskService {
         List<Task> tasks = taskRepository.findByIdInAndCategoryBoardId(request.taskIds(), boardId);
         if (tasks.size() != request.taskIds().size()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more tasks not found");
+        }
+
+        if (tasks.size() > Category.MAX_TASKS) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A category cannot have more than " + Category.MAX_TASKS + " tasks"
+            );
         }
 
         // Reorder the tasks to match the request order so the positions may be updated

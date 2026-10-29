@@ -3,11 +3,10 @@ import type { Category } from "../types/category";
 import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
 import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
-import type { Task, TaskDropTarget } from "../types/task";
+import { MAX_TASKS, type Task, type TaskDropTarget } from "../types/task";
 import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "./TaskCard";
-import { localReorderTasksInCategory } from "../utils/taskReordering";
 import { useCategoryDrag } from "../hooks/useCategoryDrag";
 import { useCategoryTaskDrag } from "../hooks/useCategoryTaskDrag";
 
@@ -34,20 +33,31 @@ type CategoryCardProps = {
 };
 
 function HeaderButton(
-  { className, children, onClick }: { className?: string, children: React.ReactNode, onClick: () => void }
+  {
+    className,
+    children,
+    onClick,
+    disabled = false
+  }: {
+    className?: string,
+    children: React.ReactNode,
+    onClick: () => void,
+    disabled?: boolean
+  }
 ) {
   return (
     <button
-        className={`rounded-lg border border-zinc-300 bg-zinc-200 px-3 py-1
-                    text-lg cursor-pointer
-          transition
-            hover:bg-sky-200
-            hover:border-sky-300
-          ${className}
-        `}
-        onClick={onClick}
-        >
-        {children}
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-lg border border-zinc-300 bg-zinc-200 px-3 py-1
+                  text-lg cursor-pointer
+        transition
+          hover:bg-sky-200
+          hover:border-sky-300
+        ${className}
+      `}
+      >
+      {children}
     </button>
   );
 }
@@ -250,9 +260,17 @@ export default function CategoryCard(
           </div>
         </div>
         <div className={`h-[60px] border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} flex items-center gap-2`}>
-          <HeaderButton className="flex items-center gap-1" onClick={updateAndAddTask}>
+          <HeaderButton
+            className="flex items-center gap-1"
+            onClick={updateAndAddTask}
+            disabled={tasks.length >= MAX_TASKS}
+          >
             <Plus className="w-5 h-5"/>
-            <span>Add Task</span>
+            <span>
+              {tasks.length >= MAX_TASKS
+                ? "Task Limit Reached"
+                : "Add Task"}
+            </span>
           </HeaderButton>
           <HeaderButton className="flex items-center gap-2" onClick={() => setIsEditOpen(true)}>
             <SquarePen className="w-5 h-5" />

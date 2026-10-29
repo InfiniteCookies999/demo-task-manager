@@ -53,7 +53,6 @@ public class BoardEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTasksReordered(TasksReorderedEvent event) {
-        System.out.println("sending reorder!");
         send(BoardEventType.TASKS_REORDERED, event.boardId(), event);
     }
 

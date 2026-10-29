@@ -153,6 +153,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     );
   }
 
+  const MAX_CATEGORIES = 30;
+
   return (
     <>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -161,9 +163,17 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
               <div className="flex gap-3">
                 {initialStateLoaded && (
                   <>
-                    <ActionButton className="flex items-center gap-2" onClick={createCategory}>
+                    <ActionButton
+                      className="flex items-center gap-2"
+                      onClick={createCategory}
+                      disabled={categories.length >= MAX_CATEGORIES}
+                    >
                       <Plus className="w-5 h-5"/>
-                      <span>Create Category</span>
+                      <span>
+                        {categories.length >= MAX_CATEGORIES
+                          ? "Category Limit Reached"
+                          : "Create Category"}
+                      </span>
                     </ActionButton>
                     <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
                     <ActionButton onClick={() => {}}>Change Background</ActionButton>

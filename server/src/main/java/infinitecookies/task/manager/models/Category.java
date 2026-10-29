@@ -35,7 +35,6 @@ public class Category {
     private Integer position;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    @Size(max = MAX_TASKS)
     private List<Task> tasks;
 
 }

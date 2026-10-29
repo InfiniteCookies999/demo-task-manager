@@ -1,5 +1,6 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.CategoryColor;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
@@ -46,13 +47,20 @@ public class CategoryService {
     public CategoryResponse createCategory(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        long count = categoryRepository.countByBoardId(boardId);
+        long nextPosition = categoryRepository.countByBoardId(boardId);
+
+        if (nextPosition >= Board.MAX_CATEGORIES) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A board cannot have more than " + Board.MAX_CATEGORIES + " categories"
+            );
+        }
 
         Category category = new Category();
         category.setName("Untitled");
         category.setColor(CategoryColor.GRAY);
         category.setBoard(boardRepository.getReferenceById(boardId));
-        category.setPosition((int) count);
+        category.setPosition((int) nextPosition);
         categoryRepository.save(category);
 
         CategoryResponse response = CategoryResponse.fromCategory(category);

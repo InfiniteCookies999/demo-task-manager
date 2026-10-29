@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { Category } from "../types/category";
-import type { Task, TaskDropTarget } from "../types/task";
+import { MAX_TASKS, type Task, type TaskDropTarget } from "../types/task";
 import createDragClone from "../utils/createDragClone";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
@@ -103,9 +103,13 @@ export function useTaskDrag(
         return;
       }
 
+      if (tasks.length >= MAX_TASKS && draggingTask.categoryId !== category.id) {
+        return;
+      }
+
       setTaskDropTarget({ type: "task", id: task.id });
     },
-    [draggingTask, task, setTaskDropTarget]
+    [draggingTask, task, tasks, category, setTaskDropTarget]
   );
 
   // Handles when a task is dropped into another task.
@@ -128,7 +132,12 @@ export function useTaskDrag(
     }
   }
 
-  function handleDropInSameCategory(targetCategoryId: number, sourceId: number, targetId: number) {
+  function handleDropInSameCategory(
+    tasks: Task[],
+    targetCategoryId: number,
+    sourceId: number,
+    targetId: number
+  ) {
     const sourceIndex = tasks.findIndex((task) => task.id === sourceId);
     const targetIndex = tasks.findIndex((task) => task.id === targetId);
 
@@ -164,8 +173,11 @@ export function useTaskDrag(
   }
 
   function handleDropInDifferentCategory(
-    sourceId: number, targetId: number,
-    sourceCategoryId: number, targetCategoryId: number
+    tasksByCategory: Record<number, Task[]>,
+    sourceId: number,
+    targetId: number,
+    sourceCategoryId: number,
+    targetCategoryId: number
   ) {
 
     const sourceTasks = tasksByCategory[sourceCategoryId];
@@ -174,6 +186,10 @@ export function useTaskDrag(
     const sourceIndex = sourceTasks.findIndex((task) => task.id === sourceId);
     const targetIndex = targetTasks.findIndex((task) => task.id === targetId);
     if (sourceIndex === -1 || targetIndex === -1) {
+      return;
+    }
+
+    if (targetTasks.length >= MAX_TASKS) {
       return;
     }
 
@@ -214,15 +230,15 @@ export function useTaskDrag(
       }
 
       if (sourceCategoryId === targetCategoryId) {
-        handleDropInSameCategory(targetCategoryId, sourceId, targetId);
+        handleDropInSameCategory(tasks, targetCategoryId, sourceId, targetId);
         clearDragState();
         return;
       }
 
-      handleDropInDifferentCategory(sourceId, targetId, sourceCategoryId, targetCategoryId);
+      handleDropInDifferentCategory(tasksByCategory, sourceId, targetId, sourceCategoryId, targetCategoryId);
       clearDragState();
     },
-    [clearDragState, handleDropInSameCategory, handleDropInDifferentCategory]
+    [tasks, tasksByCategory, clearDragState, handleDropInSameCategory, handleDropInDifferentCategory]
   );
 
   return {
