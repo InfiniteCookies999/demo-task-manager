@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./api/apiFetch";
-import useApiError from "./hooks/apiError";
+import useApiError from "./hooks/useApiError";
 import { AppContext } from "./contexts/AppContext";
 import type { User } from "./types/user";
 import Board from "./components/Board";
