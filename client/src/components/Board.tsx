@@ -54,6 +54,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
+  const [initialStateLoaded, setInitialStateLoaded] = useState(false);
+
   const bufferedEvents = useRef<BoardEvent[]>([]);
   const isBufferingEvents = useRef(true);
 
@@ -242,6 +244,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
           applyBoardEvent(event);
         }
 
+        setInitialStateLoaded(true);
+
       } catch (err) {
         handleError(err);
       }
@@ -267,12 +271,16 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         <div className="border-b border-zinc-300 bg-slate-50 px-8 py-6">
             <div className="flex w-full justify-between">
               <div className="flex gap-3">
-                <ActionButton className="flex items-center gap-2" onClick={createCategory}>
-                  <Plus className="w-5 h-5"/>
-                  <span>Create Category</span>
-                </ActionButton>
-                <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
-                <ActionButton onClick={() => {}}>Change Background</ActionButton>
+                {initialStateLoaded && (
+                  <>
+                    <ActionButton className="flex items-center gap-2" onClick={createCategory}>
+                      <Plus className="w-5 h-5"/>
+                      <span>Create Category</span>
+                    </ActionButton>
+                    <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
+                    <ActionButton onClick={() => {}}>Change Background</ActionButton>
+                  </>
+                )}
               </div>
 
               <UserNavButton
@@ -287,7 +295,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
         {/* categories*/}
         <div className="flex flex-1 items-start gap-4 overflow-x-scroll p-8">
-        {categories.map((category, index) => (
+        {initialStateLoaded && categories.map((category, index) => (
           <CategoryCard
             key={category.id}
             categories={categories}
