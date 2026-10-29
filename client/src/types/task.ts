@@ -12,6 +12,6 @@ export type Task = {
 };
 
 export type TaskDropTarget =
-  | { type: "task", id: number }
+  | { type: "task", id: number, categoryId: number }
   | { type: "category", id: number }
   | null;

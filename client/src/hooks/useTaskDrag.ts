@@ -107,7 +107,7 @@ export function useTaskDrag(
         return;
       }
 
-      setTaskDropTarget({ type: "task", id: task.id });
+      setTaskDropTarget({ type: "task", id: task.id, categoryId: category.id });
     },
     [draggingTask, task, tasks, category, setTaskDropTarget]
   );
@@ -136,12 +136,14 @@ export function useTaskDrag(
     tasks: Task[],
     targetCategoryId: number,
     sourceId: number,
-    targetId: number
+    targetId: number,
+    clearDragState: () => void
   ) {
     const sourceIndex = tasks.findIndex((task) => task.id === sourceId);
     const targetIndex = tasks.findIndex((task) => task.id === targetId);
 
     if (sourceIndex === -1 || targetIndex === -1) {
+      clearDragState();
       return;
     }
 
@@ -169,6 +171,8 @@ export function useTaskDrag(
     // where the card we just tried to move should be.
     //
     setTasks(updated);
+    clearDragState();
+
     updateTaskOrder(targetCategoryId, updated, null);
   }
 
@@ -177,7 +181,8 @@ export function useTaskDrag(
     sourceId: number,
     targetId: number,
     sourceCategoryId: number,
-    targetCategoryId: number
+    targetCategoryId: number,
+    clearDragState: () => void
   ) {
 
     const sourceTasks = tasksByCategory[sourceCategoryId];
@@ -186,10 +191,12 @@ export function useTaskDrag(
     const sourceIndex = sourceTasks.findIndex((task) => task.id === sourceId);
     const targetIndex = targetTasks.findIndex((task) => task.id === targetId);
     if (sourceIndex === -1 || targetIndex === -1) {
+      clearDragState();
       return;
     }
 
     if (targetTasks.length >= MAX_TASKS) {
+      clearDragState();
       return;
     }
 
@@ -205,6 +212,7 @@ export function useTaskDrag(
     // Optimistic moving problems are similar to what is described in handleDropInSameCategory()
     // The same proposed solution may be viable.
     setTasksByCategory(updated);
+    clearDragState();
 
     const updatedTargetTasks = updated[targetCategoryId];
     updateTaskOrder(targetCategoryId, updatedTargetTasks, sourceId);
@@ -215,6 +223,12 @@ export function useTaskDrag(
       e.preventDefault();
 
       const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+
+      if (data.taskId === undefined || data.categoryId === undefined) {
+        // If a category is dropped on top of a task handleDrop will be called so we need
+        // to ensure that the source data exists.
+        return;
+      }
 
       const sourceId: number = data.taskId;
       const sourceCategoryId: number = data.categoryId;
@@ -230,13 +244,13 @@ export function useTaskDrag(
       }
 
       if (sourceCategoryId === targetCategoryId) {
-        handleDropInSameCategory(tasks, targetCategoryId, sourceId, targetId);
-        clearDragState();
+        handleDropInSameCategory(tasks, targetCategoryId, sourceId, targetId, clearDragState);
         return;
       }
 
-      handleDropInDifferentCategory(tasksByCategory, sourceId, targetId, sourceCategoryId, targetCategoryId);
-      clearDragState();
+      handleDropInDifferentCategory(
+        tasksByCategory, sourceId, targetId, sourceCategoryId, targetCategoryId, clearDragState
+      );
     },
     [tasks, tasksByCategory, clearDragState, handleDropInSameCategory, handleDropInDifferentCategory]
   );

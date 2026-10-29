@@ -205,6 +205,13 @@ export default function CategoryCard(
                            dropTargetCategoryId !== null &&
                            dropTargetCategoryId !== category.id;
 
+  const highlightAsDropTarget = taskDropTarget &&
+                                ((taskDropTarget.type === "category" &&
+                                 taskDropTarget.id === category.id) ||
+                                 (taskDropTarget.type === "task" &&
+                                  taskDropTarget.categoryId === category.id
+                                ));
+
   return (
     <>
       {(isDragTarget && draggingCategory.position > category.position) &&
@@ -212,7 +219,8 @@ export default function CategoryCard(
 
       <div
         className={
-          `w-[400px] shrink-0 rounded-lg border border-zinc-300
+          `w-[400px] shrink-0 rounded-lg border
+          ${highlightAsDropTarget ? "ring-1 ring-blue-500/2 border-blue-500" : "border-zinc-300"}
           ${CATEGORY_COLORS[category.color]} p-4 shadow-sm
           ${dragHasBeenMoved
               ? "hidden"

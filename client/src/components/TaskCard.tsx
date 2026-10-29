@@ -45,7 +45,14 @@ function DropArea(
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
       }}
-      onDrop={(e) => handleDrop(e, task?.id ?? null, category.id)}
+      onDrop={(e) => {
+        if (!task) {
+          // Fake drop area to drop into an empty category. Handled by useCategoryTaskDrag.ts.
+          return;
+        }
+        e.stopPropagation(); // It is nested inside another div with drop. Preventing from happening twice.
+        handleDrop(e, task?.id ?? null, category.id)
+      }}
     />
   );
 }
@@ -119,7 +126,11 @@ export default function TaskCard(
 
   const isCategoryDragTarget = taskDropTarget &&
                                taskDropTarget.type === "category" &&
-                               taskDropTarget.id === category.id;
+                               taskDropTarget.id === category.id &&
+                               (task === null ||
+                                  (task.position === tasks.length - 1 &&
+                                    draggingTask?.categoryId !== category.id
+                                  ));
 
   return (
     <>
@@ -144,6 +155,7 @@ export default function TaskCard(
             });
           }
         }}
+        data-task-card
         onDragEnd={clearDragState}
         onDragEnter={(e) => handleDragEnter(e)}
         onDragOver={(e) => {
@@ -153,8 +165,7 @@ export default function TaskCard(
         onDrop={(e) => { if (task) handleDrop(e, task.id, category.id)}}
         >
         {(
-          (isDragTarget && draggingTask.position > task.position && draggingTask.categoryId === task.categoryId) ||
-          isCategoryDragTarget
+          (isDragTarget && draggingTask.position > task.position && draggingTask.categoryId === task.categoryId)
         ) &&
           <DropArea className="mb-2" task={task} category={category} handleDrop={handleDrop} />}
 
@@ -210,7 +221,12 @@ export default function TaskCard(
           Ideally this would instead use the onDragOver event to check its
           relative position and determine to place above/below.
         */}
-        {(isDragTarget && (draggingTask.position < task.position || draggingTask.categoryId !== task.categoryId)) &&
+        {(
+          ((isDragTarget &&
+            (draggingTask.position < task.position || draggingTask.categoryId !== task.categoryId))) ||
+          isCategoryDragTarget
+         )
+           &&
           <DropArea className="my-2" task={task} category={category} handleDrop={handleDrop} />}
       </div>
 

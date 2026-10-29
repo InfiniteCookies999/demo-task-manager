@@ -45,24 +45,30 @@ export function useCategoryTaskDrag(
   //
   const handleTaskDragEnter = useCallback(
     (e: React.DragEvent<HTMLDivElement>, category: Category) => {
-      // Ignore drag events between children elements of the same card.
-      if (e.relatedTarget instanceof Node &&
-          e.currentTarget.contains(e.relatedTarget)) {
+      // Don't set the category as the target when entering a task card.
+      if (
+        e.target instanceof Element &&
+        e.target.closest("[data-task-card]")
+      ) {
         return;
       }
 
-      if (draggingCategory) {
+      if (draggingCategory || !draggingTask) {
         return;
       }
 
-      if (draggingTask && tasks.length === 0) {
-        setTaskDropTarget({ type: "category", id: category.id });
+      // Don't update state multiple times.
+      if (taskDropTarget?.type === "category" &&
+          taskDropTarget.id === category.id) {
+        return;
       }
+
+      setTaskDropTarget({ type: "category", id: category.id });
     },
     [draggingCategory, tasks, draggingTask]
   );
 
-  // Handles when a task is dropped into an empty category.
+  // Handles when a task is dropped into a category instead of a specific task.
   //
   async function updateTaskOrder(
     boardId: number,
@@ -84,7 +90,7 @@ export function useCategoryTaskDrag(
   }
 
   const handleTaskDrop = useCallback(
-    async (e: React.DragEvent<HTMLDivElement>, targetId: number) => {
+    async (e: React.DragEvent<HTMLDivElement>, targetCategoryId: number) => {
       e.preventDefault();
 
       if (!draggingTask) {
@@ -96,7 +102,7 @@ export function useCategoryTaskDrag(
       }
 
       // This really should not ever happen.
-      if (targetId !== taskDropTarget.id) {
+      if (targetCategoryId !== taskDropTarget.id) {
         clearTaskDragState();
         return;
       }
@@ -106,10 +112,11 @@ export function useCategoryTaskDrag(
       const sourceId: number = data.taskId;
       const sourceCategoryId: number = data.categoryId;
 
-      if (sourceId === targetId) {
+      if (targetCategoryId === sourceCategoryId) {
         clearTaskDragState();
         return;
       }
+
 
       const sourceTasks = tasksByCategory[sourceCategoryId];
 
@@ -120,20 +127,21 @@ export function useCategoryTaskDrag(
       }
 
       // Optimistically update
+      const targetTasks = tasksByCategory[targetCategoryId];
       const updated = localReorderTasksInCategory(
         tasksByCategory,
         sourceId,
         sourceCategoryId,
-        targetId,
+        targetCategoryId,
         sourceIndex,
-        0
+        targetTasks.length
       );
       setTasksByCategory(updated);
       clearTaskDragState();
 
-      const updatedTargetTasks = updated[targetId];
+      const updatedTargetTasks = updated[targetCategoryId];
       try {
-        await updateTaskOrder(boardId, targetId, updatedTargetTasks, sourceId);
+        await updateTaskOrder(boardId, targetCategoryId, updatedTargetTasks, sourceId);
       } catch (err) {
         handleError(err);
       }

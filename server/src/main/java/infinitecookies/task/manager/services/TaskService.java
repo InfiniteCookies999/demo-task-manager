@@ -1,5 +1,6 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CreateTaskRequest;
@@ -7,6 +8,7 @@ import infinitecookies.task.manager.models.dto.TaskReorderRequest;
 import infinitecookies.task.manager.models.dto.TaskResponse;
 import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
 import infinitecookies.task.manager.models.websock.*;
+import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
 import jakarta.transaction.Transactional;
@@ -26,16 +28,19 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final BoardRepository boardRepository;
     private final BoardService boardService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public TaskService(TaskRepository taskRepository,
                        CategoryRepository categoryRepository,
+                       BoardRepository boardRepository,
                        BoardService boardService,
                        ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
+        this.boardRepository = boardRepository;
         this.boardService = boardService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
@@ -106,6 +111,12 @@ public class TaskService {
 
     @Transactional
     public void reorderTasks(Long userId, Long boardId, TaskReorderRequest request) {
+
+        // Positional updates requires updating multiple tasks at the same time and this method
+        // has run into a deadlock. Locking based on the board to prevent deadlocking.
+        boardRepository.findByIdForReorderWithLock(boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));
+
         boardService.checkHasAuthorization(userId, boardId);
 
         // TODO (maddie): its unclear if this logic catches duplicates. When we write tests we
@@ -177,8 +188,8 @@ public class TaskService {
             taskRepository.flush();
 
             sourceTasks = taskRepository.findAllByCategoryIdOrderByPositionAsc(sourceCategoryId);
-            for (int i= 0; i < tasks.size(); i++) {
-                tasks.get(i).setPosition(i);
+            for (int i= 0; i < sourceTasks.size(); i++) {
+                sourceTasks.get(i).setPosition(i);
             }
         }
 
