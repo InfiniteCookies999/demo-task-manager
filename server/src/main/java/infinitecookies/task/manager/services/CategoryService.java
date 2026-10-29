@@ -2,13 +2,17 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.CategoryColor;
-import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
+import infinitecookies.task.manager.models.websock.CategoriesReorderedEvent;
+import infinitecookies.task.manager.models.websock.CategoryCreatedEvent;
+import infinitecookies.task.manager.models.websock.CategoryDeletedEvent;
+import infinitecookies.task.manager.models.websock.CategoryUpdatedEvent;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,14 +30,19 @@ public class CategoryService {
     private final BoardRepository boardRepository;
     private final BoardService boardService;
 
+    private final ApplicationEventPublisher applicationEventPublisher;
+
     public CategoryService(CategoryRepository categoryRepository,
                            BoardRepository boardRepository,
-                           BoardService boardService) {
+                           BoardService boardService,
+                           ApplicationEventPublisher applicationEventPublisher) {
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
+    @Transactional
     public CategoryResponse createCategory(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
@@ -45,7 +54,12 @@ public class CategoryService {
         category.setBoard(boardRepository.getReferenceById(boardId));
         category.setPosition((int) count);
         categoryRepository.save(category);
-        return CategoryResponse.fromCategory(category);
+
+        CategoryResponse response = CategoryResponse.fromCategory(category);
+
+        applicationEventPublisher.publishEvent(new CategoryCreatedEvent(boardId, response));
+
+        return response;
     }
 
     public List<CategoryResponse> getCategories(Long userId, Long boardId) {
@@ -70,6 +84,9 @@ public class CategoryService {
         if (request.color() != null) {
             category.setColor(request.color());
         }
+
+        applicationEventPublisher.publishEvent(
+            new CategoryUpdatedEvent(boardId, id, request.name(), request.color()));
     }
 
     @Transactional
@@ -105,6 +122,9 @@ public class CategoryService {
         for (int i = 0; i < orderedCategories.size(); i++) {
             orderedCategories.get(i).setPosition(i);
         }
+
+        applicationEventPublisher.publishEvent(
+            new CategoriesReorderedEvent(boardId, request.categoryIds()));
     }
 
     @Transactional
@@ -122,5 +142,7 @@ public class CategoryService {
         for (int i= 0; i < categories.size(); i++) {
             categories.get(i).setPosition(i);
         }
+
+        applicationEventPublisher.publishEvent(new CategoryDeletedEvent(boardId, id));
     }
 }

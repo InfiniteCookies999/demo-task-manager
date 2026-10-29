@@ -5,5 +5,4 @@ public record UserInviteSearchResponse(
     String username,
     boolean alreadyInvited,
     boolean alreadyMember
-) {
-}
+) {}

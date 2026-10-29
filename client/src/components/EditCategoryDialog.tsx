@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import { createPortal } from "react-dom";
 import DialogTitleAndClose from "./DialogTitleAndClose";
+import { removeCategoryForDelete } from "../utils/categoryDeleting";
 
 
 type EditCategoryDialogProps = {
@@ -22,9 +23,6 @@ export default function EditCategoryDialog(
   }:
   EditCategoryDialogProps
 ) {
-
-  // TODO (maddie): sometimes when this is opened up it the exit button has a weird
-  // red border.
 
   const { handleError } = useAppContext();
 
@@ -52,6 +50,9 @@ export default function EditCategoryDialog(
       return;
     }
 
+    // Optimistically update. If someone else updates after us the correct order
+    // will get sent from the server. The server response will simply be what is
+    // always accepted in the end anyway so it should stay in sync.
     setCategories((current) =>
       current.map((otherCategory) => otherCategory.id === category.id
         ? {...otherCategory, name: editName, color: editColor} : otherCategory)
@@ -83,8 +84,7 @@ export default function EditCategoryDialog(
       await apiFetch(`/api/boards/${category.boardId}/categories/${category.id}`, {
         method: "DELETE",
       });
-      setCategories((current) =>
-        current.filter((otherCategory) => otherCategory.id !== category.id));
+      setCategories((current) => removeCategoryForDelete(category.id, current));
     } catch (err) {
       handleError(err);
     }

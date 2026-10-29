@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import ActionButton from "./ActionButton";
 import CategoryCard from "./CategoryCard";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Category } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
@@ -13,6 +13,13 @@ import SendInvitesDialog from "./SendInvitesDialog";
 import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
 import ChangeUsernameDialog from "./ChangeUsernameDialog";
+import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
+import { type BoardEvent, type CategoryUpdatedEventPayload, type TasksReorderedEventPayload, type TaskUpdatedEventPayload } from "../types/event";
+import { reorderCategories } from "../utils/categoryReordering";
+import { removeCategoryForDelete } from "../utils/categoryDeleting";
+import { removeTaskForDelete } from "../utils/taskDeleting";
+import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
+import { findTaskCategoryId } from "../utils/taskFinding";
 
 
 type BoardProps = {
@@ -47,12 +54,171 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
+  const [initialStateLoaded, setInitialStateLoaded] = useState(false);
+
+  const bufferedEvents = useRef<BoardEvent[]>([]);
+  const isBufferingEvents = useRef(true);
+
+  const addCategory = useCallback((category: Category) => {
+    setCategories((current) => {
+      // Prevent duplicates from websockets.
+      if (current.some((otherCategory) => otherCategory.id === category.id)) {
+        return current;
+      }
+      // Ensure order since local response may not sync with websockets entirely.
+      return [...current, category].sort((a, b) => a.position - b.position);
+    });
+    setTasksByCategory((current) => {
+      if (category.id in current) { // Prevent duplicates from websockets.
+        return current;
+      }
+      return { ... current, [category.id]: [] };
+    })
+  }, []);
+
+  const addTask = useCallback((task: Task) => {
+    setTasksByCategory((current) => {
+      if (!(task.categoryId in current)) {
+        return current;
+      }
+      // Prevent duplicates from websockets.
+      if (current[task.categoryId].some((otherTask) => otherTask.id === task.id)) {
+        return current;
+      }
+      // Ensure order since local response may not sync with websockets entirely.
+      const updatedTasks = [...current[task.categoryId], task]
+        .sort((a, b) => a.position - b.position);
+      return {
+        ...current,
+        [task.categoryId]: updatedTasks
+      };
+    })
+  }, []);
+
+  const applyBoardEvent = useCallback((event: BoardEvent) => {
+    switch (event.type) {
+      case "CATEGORY_CREATED": {
+        addCategory(event.payload.category);
+        break;
+      }
+      case "CATEGORY_UPDATED": {
+        const { categoryId, name, color }: CategoryUpdatedEventPayload = event.payload;
+
+        setCategories((current) =>
+          current.map((category) => category.id === categoryId
+            ? {
+                ...category,
+                name: name ?? category.name,
+                color: color ?? category.color
+              }
+            : category
+         ));
+        break;
+      }
+      case "CATEGORIES_REORDERED": {
+        setCategories((current) => reorderCategories(current, event.payload.categoryIds));
+        break;
+      }
+      case "CATEGORY_DELETED": {
+        const categoryId: number = event.payload.categoryId;
+        setCategories((current) => removeCategoryForDelete(categoryId, current));
+        break;
+      }
+
+      case "TASK_CREATED": {
+        addTask(event.payload.task);
+        break;
+      }
+      case "TASK_UPDATED": {
+        const {
+          categoryId,
+          taskId,
+          name,
+          description,
+          completed
+        }: TaskUpdatedEventPayload = event.payload;
+
+        setTasksByCategory((current) => {
+
+          let foundCategoryId = findTaskCategoryId(current, taskId, categoryId);
+          if (!foundCategoryId) {
+            return current;
+          }
+
+          const tasks = current[foundCategoryId];
+          const reordered = tasks
+            .map((task) => task.id === taskId
+              ? {
+                  ...task,
+                  name: name ?? task.name,
+                  description: description ?? task.description,
+                  completed: completed ?? task.completed
+                }
+              : task
+            );
+
+          return {
+            ...current,
+            [foundCategoryId]: reordered
+          };
+        });
+        break;
+      }
+      case "TASKS_REORDERED": {
+        const {
+          sourceCategoryId,
+          targetCategoryId,
+          sourceTaskIds,
+          targetTaskIds,
+          movedTaskId
+        }: TasksReorderedEventPayload = event.payload;
+
+        setTasksByCategory((current) =>
+          reorderTasksInCategoryFromResponse(
+            current,
+            sourceCategoryId,
+            targetCategoryId,
+            sourceTaskIds,
+            targetTaskIds,
+            movedTaskId
+        ));
+
+        break;
+      }
+      case "TASK_DELETED": {
+        const taskId: number = event.payload.taskId;
+        const categoryId: number = event.payload.categoryId;
+        setTasksByCategory((current) => removeTaskForDelete(taskId, categoryId, current));
+        break;
+      }
+    }
+  }, [addCategory]);
+
+  const handleBoardEvent = useCallback((event: BoardEvent) => {
+    if (isBufferingEvents.current) {
+      bufferedEvents.current.push(event);
+      return;
+    }
+
+    applyBoardEvent(event);
+  }, [applyBoardEvent]);
+
+  const { connected } = useBoardWebSocket(boardId, handleBoardEvent);
+
   useEffect(() => {
+    // Ensure websocket connection before fetching main content otherwise events may happen
+    // while not connected leading to missed events.
+    if (!connected) {
+      return;
+    }
+
+    isBufferingEvents.current = true;
+    bufferedEvents.current = [];
+
     async function fetchCategoriesAndTasks() {
       try {
         const categoriesResponse = await apiFetch(`/api/boards/${boardId}/categories`);
         const categories: Category[] = await categoriesResponse.json();
-        setCategories(categories);
 
         const tasksResponse = await apiFetch(`/api/boards/${boardId}/tasks`);
         const tasks: Task[] = await tasksResponse.json();
@@ -65,13 +231,27 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         for (const task of tasks) {
           groupedTasks[task.categoryId].push(task);
         }
+
+        setCategories(categories);
         setTasksByCategory(groupedTasks);
+
+        // Apply the events that took place during the fetch.
+        const events = bufferedEvents.current;
+        bufferedEvents.current = [];
+        isBufferingEvents.current = false;
+
+        for (const event of events) {
+          applyBoardEvent(event);
+        }
+
+        setInitialStateLoaded(true);
+
       } catch (err) {
         handleError(err);
       }
     }
     fetchCategoriesAndTasks();
-  }, [boardId]);
+  }, [connected, boardId, applyBoardEvent]);
 
   async function createCategory() {
     try {
@@ -79,8 +259,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         method: "POST"
       });
       const newCategory: Category = await response.json();
-      setCategories((current) => [...current, newCategory]);
-      setTasksByCategory((current) => ({...current, [newCategory.id]: [] }));
+      addCategory(newCategory);
     } catch (err) {
       handleError(err);
     }
@@ -92,12 +271,16 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         <div className="border-b border-zinc-300 bg-slate-50 px-8 py-6">
             <div className="flex w-full justify-between">
               <div className="flex gap-3">
-                <ActionButton className="flex items-center gap-2" onClick={createCategory}>
-                  <Plus className="w-5 h-5"/>
-                  <span>Create Category</span>
-                </ActionButton>
-                <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
-                <ActionButton onClick={() => {}}>Change Background</ActionButton>
+                {initialStateLoaded && (
+                  <>
+                    <ActionButton className="flex items-center gap-2" onClick={createCategory}>
+                      <Plus className="w-5 h-5"/>
+                      <span>Create Category</span>
+                    </ActionButton>
+                    <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
+                    <ActionButton onClick={() => {}}>Change Background</ActionButton>
+                  </>
+                )}
               </div>
 
               <UserNavButton
@@ -112,7 +295,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
         {/* categories*/}
         <div className="flex flex-1 items-start gap-4 overflow-x-scroll p-8">
-        {categories.map((category, index) => (
+        {initialStateLoaded && categories.map((category, index) => (
           <CategoryCard
             key={category.id}
             categories={categories}
@@ -122,6 +305,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
             tasks={tasksByCategory[category.id] ?? []}
             tasksByCategory={tasksByCategory}
             setTasksByCategory={setTasksByCategory}
+            addTask={addTask}
             setCategories={setCategories}
             draggingCategory={draggingCategory}
             setDraggingCategory={setDraggingCategory}

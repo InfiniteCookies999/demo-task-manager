@@ -8,11 +8,13 @@ import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import { createPortal } from "react-dom";
 import DialogTitleAndClose from "./DialogTitleAndClose";
+import { removeTaskForDelete } from "../utils/taskDeleting";
 
 type EditTaskDialogProps = {
   boardId: number;
   task: Task,
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
   onClose: () => void;
 };
 
@@ -21,6 +23,7 @@ export default function EditTaskDialog(
     boardId,
     task,
     setTasks,
+    setTasksByCategory,
     onClose
   }:
   EditTaskDialogProps
@@ -75,6 +78,9 @@ export default function EditTaskDialog(
       return;
     }
 
+    // Optimistically update. If someone else updates after us the correct order
+    // will get sent from the server. The server response will simply be what is
+    // always accepted in the end anyway so it should stay in sync.
     setTasks((current) =>
       current.map((otherTask) => otherTask.id == task.id
         ? {...otherTask, name: editName, description} : otherTask)
@@ -107,8 +113,7 @@ export default function EditTaskDialog(
       await apiFetch(`/api/boards/${boardId}/tasks/${task.id}`, {
         method: "DELETE",
       });
-      setTasks((current) =>
-        current.filter((otherTask) => otherTask.id !== task.id));
+      setTasksByCategory((current) => removeTaskForDelete(task.id, task.categoryId, current));
     } catch (err) {
       handleError(err);
     }

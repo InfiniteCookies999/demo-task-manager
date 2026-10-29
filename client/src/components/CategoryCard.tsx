@@ -8,7 +8,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "./TaskCard";
 import createDragClone from "../utils/createDragClone";
-import { reorderTasksInCategory } from "../utils/taskReordering";
+import { localReorderTasksInCategory } from "../utils/taskReordering";
 
 type CategoryCardProps = {
   category: Category;
@@ -19,6 +19,7 @@ type CategoryCardProps = {
   nextCategoryId: number | null;
   tasksByCategory: Record<number, Task[]>;
   setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
+  addTask: (task: Task) => void;
   // Category dragging
   draggingCategory: Category | null;
   setDraggingCategory: React.Dispatch<React.SetStateAction<Category | null>>;
@@ -99,6 +100,7 @@ export default function CategoryCard(
     nextCategoryId,
     tasksByCategory,
     setTasksByCategory,
+    addTask,
     // Category dragging
     draggingCategory,
     setDraggingCategory,
@@ -133,7 +135,7 @@ export default function CategoryCard(
     });
   };
 
-  async function addTask() {
+  async function updateAndAddTask() {
     try {
       const response = await apiFetch(`/api/boards/${category.boardId}/tasks`, {
         method: "POST",
@@ -146,7 +148,7 @@ export default function CategoryCard(
         })
       });
       const newTask: Task = await response.json();
-      setTasks((current) => [...current, newTask]);
+      addTask(newTask);
     } catch (err) {
       handleError(err);
     }
@@ -244,7 +246,7 @@ export default function CategoryCard(
     }
   }
 
-  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedCardId: number | null) {
+  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedTaskId: number | null) {
     try {
       await apiFetch(`/api/boards/${category.boardId}/tasks/reorder`, {
         method: "PATCH",
@@ -254,7 +256,7 @@ export default function CategoryCard(
         body: JSON.stringify({
           targetCategoryId,
           taskIds: tasks.map(({ id }) => id),
-          movedCardId
+          movedTaskId
         })
       });
     } catch (err) {
@@ -273,7 +275,7 @@ export default function CategoryCard(
       return;
     }
 
-    const updated = reorderTasksInCategory(
+    const updated = localReorderTasksInCategory(
       tasksByCategory,
       sourceId,
       sourceCategoryId,
@@ -347,6 +349,8 @@ export default function CategoryCard(
       position: index,
     }));
 
+    // Optimistically update. This could result in order mismatch in the case of multiple
+    // drags but waiting on the server response in this case could lead to a poor experience.
     setCategories(updated);
     updateCategoryOrder(updated);
     clearDragState();
@@ -410,7 +414,7 @@ export default function CategoryCard(
           </div>
         </div>
         <div className={`h-[60px] border-b ${SEPARATER_CATEGORY_BORDER_COLORS[category.color]} flex items-center gap-2`}>
-          <HeaderButton className="flex items-center gap-1" onClick={addTask}>
+          <HeaderButton className="flex items-center gap-1" onClick={updateAndAddTask}>
             <Plus className="w-5 h-5"/>
             <span>Add Task</span>
           </HeaderButton>

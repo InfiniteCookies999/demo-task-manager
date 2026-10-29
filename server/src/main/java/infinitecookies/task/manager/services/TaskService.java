@@ -6,9 +6,11 @@ import infinitecookies.task.manager.models.dto.CreateTaskRequest;
 import infinitecookies.task.manager.models.dto.TaskReorderRequest;
 import infinitecookies.task.manager.models.dto.TaskResponse;
 import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
+import infinitecookies.task.manager.models.websock.*;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,14 +28,19 @@ public class TaskService {
     private final CategoryRepository categoryRepository;
     private final BoardService boardService;
 
+    private final ApplicationEventPublisher applicationEventPublisher;
+
     public TaskService(TaskRepository taskRepository,
                        CategoryRepository categoryRepository,
-                       BoardService boardService) {
+                       BoardService boardService,
+                       ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
         this.boardService = boardService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
+    @Transactional
     public TaskResponse createTask(Long userId, Long boardId, CreateTaskRequest request) {
         boardService.checkHasAuthorization(userId, boardId);
 
@@ -51,7 +58,11 @@ public class TaskService {
         task.setCategory(category);
         taskRepository.save(task);
 
-        return TaskResponse.fromTask(task);
+        TaskResponse response = TaskResponse.fromTask(task);
+
+        applicationEventPublisher.publishEvent(new TaskCreatedEvent(boardId, response));
+
+        return response;
     }
 
     public List<TaskResponse> getTasks(Long userId, Long boardId) {
@@ -77,6 +88,14 @@ public class TaskService {
         if (request.completed() != null) {
             task.setCompleted(request.completed());
         }
+
+        applicationEventPublisher.publishEvent(new TaskUpdatedEvent(
+            boardId,
+            id,
+            request.name(),
+            request.description(),
+            request.completed()
+        ));
     }
 
     @Transactional
@@ -125,7 +144,6 @@ public class TaskService {
         // Updating specific logic
         // ---------------------------
 
-        // Store reference to the
         Long sourceCategoryId = null;
         if (movedTask != null) {
             // Store reference to the original source category so its positions may be
@@ -140,21 +158,31 @@ public class TaskService {
             tasks.get(i).setPosition(i);
         }
 
+        List<Task> sourceTasks = null;
         if (movedTask != null) {
             // Re-normalizing the positions in the category the task was moved from.
             taskRepository.flush();
 
-            tasks = taskRepository.findAllByCategoryIdOrderByPositionAsc(sourceCategoryId);
+            sourceTasks = taskRepository.findAllByCategoryIdOrderByPositionAsc(sourceCategoryId);
             for (int i= 0; i < tasks.size(); i++) {
                 tasks.get(i).setPosition(i);
             }
         }
+
+        applicationEventPublisher.publishEvent(new TasksReorderedEvent(
+            boardId,
+            sourceCategoryId,
+            request.targetCategoryId(),
+            sourceTasks != null ? sourceTasks.stream().map(Task::getId).toList() : null,
+            request.taskIds(),
+            request.movedTaskId()
+        ));
     }
 
     private void validateTasksInTargetCategoryForReorder(TaskReorderRequest request, List<Task> tasks) {
         for (Task task : tasks) {
             if (!Objects.equals(task.getCategory().getId(), request.targetCategoryId())) {
-                if (!Objects.equals(task.getId(), request.movedCardId())) {
+                if (!Objects.equals(task.getId(), request.movedTaskId())) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Task neither the moved or in target category");
                 }
@@ -165,12 +193,12 @@ public class TaskService {
     private Task getAndValidateMovedTaskForReorder(
         TaskReorderRequest request, List<Task> tasks, Category targetCategory
     ) {
-        if (request.movedCardId() == null) {
+        if (request.movedTaskId() == null) {
             return null;
         }
 
         Task movedTask = tasks.stream()
-            .filter(task -> Objects.equals(task.getId(), request.movedCardId()))
+            .filter(task -> Objects.equals(task.getId(), request.movedTaskId()))
             .findFirst()
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Moved task should be in taskIds")
@@ -202,5 +230,7 @@ public class TaskService {
         for (int i= 0; i < tasks.size(); i++) {
             tasks.get(i).setPosition(i);
         }
+
+        applicationEventPublisher.publishEvent(new TaskDeletedEvent(boardId, categoryId, id));
     }
 }

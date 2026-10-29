@@ -48,7 +48,7 @@ export default function ManageInvitesDialog(
   async function acceptInvite(inviteId: number, boardId: number) {
     try {
       await apiFetch(`/api/invites/accept/${inviteId}`, { method: "POST" });
-      navigate(`boards/${boardId}`);
+      navigate(`/boards/${boardId}`);
     } catch (err) {
       handleError(err);
     }

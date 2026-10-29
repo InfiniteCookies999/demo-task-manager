@@ -46,7 +46,7 @@ function App() {
           />
           <Route
             path="/boards/:boardId"
-            element={<BoardRoute user={user} error={error} />}
+            element={<BoardRoute user={user} setUser={setUser} error={error} />}
           />
         </Routes>
       )}
