@@ -7,8 +7,9 @@ import type { Task, TaskDropTarget } from "../types/task";
 import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "./TaskCard";
-import createDragClone from "../utils/createDragClone";
 import { localReorderTasksInCategory } from "../utils/taskReordering";
+import { useCategoryDrag } from "../hooks/useCategoryDrag";
+import { useCategoryTaskDrag } from "../hooks/useCategoryTaskDrag";
 
 type CategoryCardProps = {
   category: Category;
@@ -154,207 +155,36 @@ export default function CategoryCard(
     }
   }
 
-
   // Drag and drop functionality.
-  // ----------------------------------
 
-  function clearDragState() {
-    setDraggingCategory(null);
-    setDropTargetCategoryId(null);
-  }
+  const {
+    clearDragState,
+    handleDragStart,
+    handleDragEnter,
+    handleDrop
+  } = useCategoryDrag({
+    boardId: category.boardId,
+    categories,
+    setCategories,
+    draggingCategory,
+    setDraggingCategory,
+    setDropTargetCategoryId
+  });
 
-  function clearTaskDragState() {
-    setDraggingTask(null);
-    setTaskDropTarget(null);
-  }
-
-  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
-    // Prevent dragging when dialogs are open.
-    if (document.querySelector("dialog:modal")) {
-      e.preventDefault();
-      return;
-    }
-
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(category.id));
-
-    const elm = e.currentTarget.closest("[data-category-id]") as HTMLElement | null;
-
-    if (elm) {
-
-      // Create a clone of the element so we can modify the drag image.
-      const clone = createDragClone(elm);
-      document.body.appendChild(clone);
-
-      e.dataTransfer.setDragImage(clone, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-
-      // Once the browser actually transfers to using the clone we can get rid of it.
-      requestAnimationFrame(() => {
-        clone.remove();
-      });
-    }
-
-    setDraggingCategory(category);
-  }
-
-  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
-    // Ignore drag events between children elements of the same card.
-    if (e.relatedTarget instanceof Node &&
-        e.currentTarget.contains(e.relatedTarget)) {
-      return;
-    }
-
-    if (!draggingCategory) {
-      if (draggingTask && tasks.length === 0) {
-        setTaskDropTarget({ type: "category", id: category.id });
-      }
-      return;
-    }
-    if (draggingCategory.id === category.id) {
-      return;
-    }
-
-    setDropTargetCategoryId((current) => {
-      if (current === category.id) {
-        // The user dragged back over the card that is the current drag
-        // target. In this case we want to move to the next or previous
-        // category since we place the drop area after/before depending
-        // on its position relative to the card being dragged.
-        if (draggingCategory.position < category.position) {
-          return prevCategoryId;
-        } else {
-          return nextCategoryId;
-        }
-      }
-      return category.id;
-    });
-  }
-
-  async function updateCategoryOrder(categories: Category[]) {
-    try {
-      await apiFetch(`/api/boards/${category.boardId}/categories/reorder`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          categoryIds: categories.map(({ id }) => id)
-        })
-      });
-    } catch (err) {
-      handleError(err);
-    }
-  }
-
-  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedTaskId: number | null) {
-    try {
-      await apiFetch(`/api/boards/${category.boardId}/tasks/reorder`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetCategoryId,
-          taskIds: tasks.map(({ id }) => id),
-          movedTaskId
-        })
-      });
-    } catch (err) {
-      handleError(err);
-    }
-  }
-
-  function handleTaskDropInEmptyCategory(
-    sourceId: number,
-    sourceCategoryId: number, targetCategoryId: number
-  ) {
-    const sourceTasks = tasksByCategory[sourceCategoryId];
-
-    const sourceIndex = sourceTasks.findIndex((task) => task.id === sourceId);
-    if (sourceIndex === -1) {
-      return;
-    }
-
-    const updated = localReorderTasksInCategory(
-      tasksByCategory,
-      sourceId,
-      sourceCategoryId,
-      targetCategoryId,
-      sourceIndex,
-      0
-    );
-
-    setTasksByCategory(updated);
-
-    const updatedTargetTasks = updated[targetCategoryId];
-    updateTaskOrder(targetCategoryId, updatedTargetTasks, sourceId);
-  }
-
-  function handleDrop(
-    e: React.DragEvent<HTMLDivElement>,
-    targetId: number
-  ) {
-    e.preventDefault();
-
-    if (draggingTask) {
-      if (!taskDropTarget || taskDropTarget.type !== "category") {
-        return;
-      }
-      // This really should not ever happen.
-      if (targetId !== taskDropTarget.id) {
-        clearTaskDragState();
-        return;
-      }
-
-      const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-
-      const sourceId: number = data.taskId;
-      const sourceCategoryId: number = data.categoryId;
-
-      if (sourceId === targetId) {
-        clearTaskDragState();
-        return;
-      }
-
-      handleTaskDropInEmptyCategory(sourceId, sourceCategoryId, targetId);
-      clearTaskDragState();
-      return;
-    }
-
-    if (!draggingCategory) {
-      return;
-    }
-
-    const sourceId = Number(e.dataTransfer.getData("text/plain"));
-
-    if (sourceId === targetId) {
-      clearDragState();
-      return;
-    }
-
-    const sourceIndex = categories.findIndex((category) => category.id === sourceId);
-    const targetIndex = categories.findIndex((category) => category.id === targetId);
-
-    if (sourceIndex === -1 || targetIndex === -1) {
-      clearDragState();
-      return;
-    }
-
-    const reordered = [...categories];
-    const [moved] = reordered.splice(sourceIndex, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    const updated = reordered.map((category, index) => ({
-      ...category,
-      position: index,
-    }));
-
-    // Optimistically update. This could result in order mismatch in the case of multiple
-    // drags but waiting on the server response in this case could lead to a poor experience.
-    setCategories(updated);
-    updateCategoryOrder(updated);
-    clearDragState();
-  }
+  const {
+    handleTaskDragEnter,
+    handleTaskDrop
+  } = useCategoryTaskDrag({
+    boardId: category.boardId,
+    setDraggingTask,
+    setTaskDropTarget,
+    draggingCategory,
+    tasks,
+    draggingTask,
+    taskDropTarget,
+    tasksByCategory,
+    setTasksByCategory
+  });
 
   const isDragTarget = dropTargetCategoryId === category.id &&
                        draggingCategory &&
@@ -381,14 +211,20 @@ export default function CategoryCard(
           }
         data-category-id={category.id}
         draggable
-        onDragStart={(e) => handleDragStart(e)}
+        onDragStart={(e) => handleDragStart(e, category)}
         onDragEnd={clearDragState}
-        onDragEnter={(e) => handleDragEnter(e)}
+        onDragEnter={(e) => {
+          handleDragEnter(e, category, prevCategoryId, nextCategoryId);
+          handleTaskDragEnter(e, category);
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
         }}
-        onDrop={(e) => handleDrop(e, category.id)}
+        onDrop={(e) => {
+          handleDrop(e, category.id);
+          handleTaskDrop(e, category.id);
+        }}
         onDragLeave={(e) => {
           // Ignore drag events between children elements of the same card.
           if (e.relatedTarget instanceof Node &&

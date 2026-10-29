@@ -3,11 +3,18 @@ import { useEffect, useState } from "react";
 import type { BoardEvent } from "../types/event";
 
 
-export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) => void) {
+export function useBoardWebSocket(
+  boardId: number,
+  onEvent: (event: BoardEvent) => void,
+  enabled = true
+) {
 
   const [ connected, setConnected ] = useState(false);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
 
     const protocol =
       window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -43,7 +50,7 @@ export function useBoardWebSocket(boardId: number, onEvent: (event: BoardEvent) 
     return () => {
       client.deactivate();
     };
-  }, [boardId]);
+  }, [boardId, enabled]);
 
   return { connected };
 }

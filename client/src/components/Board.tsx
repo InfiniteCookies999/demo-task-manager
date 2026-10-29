@@ -14,13 +14,9 @@ import ManageInvitesDialog from "./ManageInvitesDialog";
 import type { Invite } from "../types/invite";
 import ChangeUsernameDialog from "./ChangeUsernameDialog";
 import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
-import { type BoardEvent, type CategoryUpdatedEventPayload, type TasksReorderedEventPayload, type TaskUpdatedEventPayload } from "../types/event";
-import { reorderCategories } from "../utils/categoryReordering";
-import { removeCategoryForDelete } from "../utils/categoryDeleting";
-import { removeTaskForDelete } from "../utils/taskDeleting";
-import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
-import { findTaskCategoryId } from "../utils/taskFinding";
-
+import { type BoardEvent } from "../types/event";
+import { ApiError } from "../api/ApiError";
+import { useBoardEvents } from "../hooks/useBoardEvents";
 
 type BoardProps = {
   user: User;
@@ -56,143 +52,16 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [initialStateLoaded, setInitialStateLoaded] = useState(false);
 
+  const [notAuthorized, setNotAuthorized] = useState(false);
+
   const bufferedEvents = useRef<BoardEvent[]>([]);
   const isBufferingEvents = useRef(true);
 
-  const addCategory = useCallback((category: Category) => {
-    setCategories((current) => {
-      // Prevent duplicates from websockets.
-      if (current.some((otherCategory) => otherCategory.id === category.id)) {
-        return current;
-      }
-      // Ensure order since local response may not sync with websockets entirely.
-      return [...current, category].sort((a, b) => a.position - b.position);
-    });
-    setTasksByCategory((current) => {
-      if (category.id in current) { // Prevent duplicates from websockets.
-        return current;
-      }
-      return { ... current, [category.id]: [] };
-    })
-  }, []);
-
-  const addTask = useCallback((task: Task) => {
-    setTasksByCategory((current) => {
-      if (!(task.categoryId in current)) {
-        return current;
-      }
-      // Prevent duplicates from websockets.
-      if (current[task.categoryId].some((otherTask) => otherTask.id === task.id)) {
-        return current;
-      }
-      // Ensure order since local response may not sync with websockets entirely.
-      const updatedTasks = [...current[task.categoryId], task]
-        .sort((a, b) => a.position - b.position);
-      return {
-        ...current,
-        [task.categoryId]: updatedTasks
-      };
-    })
-  }, []);
-
-  const applyBoardEvent = useCallback((event: BoardEvent) => {
-    switch (event.type) {
-      case "CATEGORY_CREATED": {
-        addCategory(event.payload.category);
-        break;
-      }
-      case "CATEGORY_UPDATED": {
-        const { categoryId, name, color }: CategoryUpdatedEventPayload = event.payload;
-
-        setCategories((current) =>
-          current.map((category) => category.id === categoryId
-            ? {
-                ...category,
-                name: name ?? category.name,
-                color: color ?? category.color
-              }
-            : category
-         ));
-        break;
-      }
-      case "CATEGORIES_REORDERED": {
-        setCategories((current) => reorderCategories(current, event.payload.categoryIds));
-        break;
-      }
-      case "CATEGORY_DELETED": {
-        const categoryId: number = event.payload.categoryId;
-        setCategories((current) => removeCategoryForDelete(categoryId, current));
-        break;
-      }
-
-      case "TASK_CREATED": {
-        addTask(event.payload.task);
-        break;
-      }
-      case "TASK_UPDATED": {
-        const {
-          categoryId,
-          taskId,
-          name,
-          description,
-          completed
-        }: TaskUpdatedEventPayload = event.payload;
-
-        setTasksByCategory((current) => {
-
-          let foundCategoryId = findTaskCategoryId(current, taskId, categoryId);
-          if (!foundCategoryId) {
-            return current;
-          }
-
-          const tasks = current[foundCategoryId];
-          const reordered = tasks
-            .map((task) => task.id === taskId
-              ? {
-                  ...task,
-                  name: name ?? task.name,
-                  description: description ?? task.description,
-                  completed: completed ?? task.completed
-                }
-              : task
-            );
-
-          return {
-            ...current,
-            [foundCategoryId]: reordered
-          };
-        });
-        break;
-      }
-      case "TASKS_REORDERED": {
-        const {
-          sourceCategoryId,
-          targetCategoryId,
-          sourceTaskIds,
-          targetTaskIds,
-          movedTaskId
-        }: TasksReorderedEventPayload = event.payload;
-
-        setTasksByCategory((current) =>
-          reorderTasksInCategoryFromResponse(
-            current,
-            sourceCategoryId,
-            targetCategoryId,
-            sourceTaskIds,
-            targetTaskIds,
-            movedTaskId
-        ));
-
-        break;
-      }
-      case "TASK_DELETED": {
-        const taskId: number = event.payload.taskId;
-        const categoryId: number = event.payload.categoryId;
-        setTasksByCategory((current) => removeTaskForDelete(taskId, categoryId, current));
-        break;
-      }
-    }
-  }, [addCategory]);
+  const {
+    addCategory,
+    addTask,
+    applyBoardEvent
+  } = useBoardEvents(setCategories, setTasksByCategory);
 
   const handleBoardEvent = useCallback((event: BoardEvent) => {
     if (isBufferingEvents.current) {
@@ -203,7 +72,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     applyBoardEvent(event);
   }, [applyBoardEvent]);
 
-  const { connected } = useBoardWebSocket(boardId, handleBoardEvent);
+  const { connected } = useBoardWebSocket(boardId, handleBoardEvent, !notAuthorized);
 
   useEffect(() => {
     // Ensure websocket connection before fetching main content otherwise events may happen
@@ -247,6 +116,10 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         setInitialStateLoaded(true);
 
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          setNotAuthorized(true);
+          return;
+        }
         handleError(err);
       }
     }
@@ -263,6 +136,21 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     } catch (err) {
       handleError(err);
     }
+  }
+
+  if (notAuthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="rounded-lg bg-white p-8 text-center shadow-md">
+          <h1 className="mb-2 text-xl font-semibold text-gray-900">
+            Access Denied
+          </h1>
+          <p className="text-gray-600">
+            You are not authorized to access this board.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -5,10 +5,9 @@ import type { Category } from "../types/category";
 import { useAppContext } from "../contexts/AppContext";
 import { useState } from "react";
 import EditTaskDialog from "./EditTaskDialog";
-import createDragClone from "../utils/createDragClone";
-import { localReorderTasksInCategory } from "../utils/taskReordering";
 import ViewTaskDialog from "./ViewTaskDialog";
 import TaskCompletedCircle from "./TaskCompletedCircle";
+import { useTaskDrag } from "../hooks/useTaskDrag";
 
 type TaskProps = {
   category: Category;
@@ -94,179 +93,23 @@ export default function TaskCard(
   }
 
   // Drag and drop functionality.
-  // ----------------------------------
 
-  function clearDragState() {
-    setDraggingTask(null);
-    setTaskDropTarget(null);
-  }
-
-  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
-    e.stopPropagation(); // Prevent the parent category from dragging.
-
-    // Prevent dragging when dialogs are open.
-    if (document.querySelector("dialog:modal")) {
-      e.preventDefault();
-      return;
-    }
-
-    if (!task) {
-      return;
-    }
-
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", JSON.stringify({
-      taskId: task.id,
-      categoryId: category.id
-    }));
-
-    const elm = e.currentTarget.closest("[data-task-id]") as HTMLElement | null;
-
-    if (elm) {
-
-      // Create a clone of the element so we can modify the drag image.
-      const clone = createDragClone(elm);
-      document.body.appendChild(clone);
-
-      e.dataTransfer.setDragImage(clone, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-
-      // Once the browser actually transfers to using the clone we can get rid of it.
-      requestAnimationFrame(() => {
-        clone.remove();
-      });
-    }
-
-    setDraggingTask(task);
-  }
-
-  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
-    // Ignore drag events between children elements of the same card.
-    if (e.relatedTarget instanceof Node &&
-        e.currentTarget.contains(e.relatedTarget)) {
-      return;
-    }
-
-    if (!draggingTask) {
-      return;
-    }
-    if (!task) {
-      return;
-    }
-
-    setTaskDropTarget({ type: "task", id: task.id });
-  }
-
-  async function updateTaskOrder(targetCategoryId: number, tasks: Task[], movedTaskId: number | null) {
-    try {
-      await apiFetch(`/api/boards/${category.boardId}/tasks/reorder`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetCategoryId,
-          taskIds: tasks.map(({ id }) => id),
-          movedTaskId
-        })
-      });
-    } catch (err) {
-      handleError(err);
-    }
-  }
-
-  function handleDropInSameCategory(targetCategoryId: number, sourceId: number, targetId: number) {
-    const sourceIndex = tasks.findIndex((task) => task.id === sourceId);
-    const targetIndex = tasks.findIndex((task) => task.id === targetId);
-
-    if (sourceIndex === -1 || targetIndex === -1) {
-      return;
-    }
-
-    const reordered = [...tasks];
-    const [moved] = reordered.splice(sourceIndex, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    const updated = reordered.map((task, index) => ({
-      ...task,
-      position: index,
-    }));
-
-    // Optmistic moving problems:
-    // 1. We move a card that another user already moved to a different category.
-    //    Now our change is rejected but we have no rollback strategy.
-    // 2. Another user moves a different card out to a different category so now we
-    //    reorder the incorrect number of cards.
-    // 3. Another user adds a different card to this category so now we reorder the
-    //    incorrect number of cards.
-    //
-    // Always rolling back would be problematic we could override newer changes.
-    //
-    // Possible solution:
-    // If the server responds with an error send a request to the server asking it
-    // where the card we just tried to move should be.
-    //
-    setTasks(updated);
-    updateTaskOrder(targetCategoryId, updated, null);
-  }
-
-  function handleDropInDifferentCategory(
-    sourceId: number, targetId: number,
-    sourceCategoryId: number, targetCategoryId: number
-  ) {
-
-    const sourceTasks = tasksByCategory[sourceCategoryId];
-    const targetTasks = tasksByCategory[targetCategoryId];
-
-    const sourceIndex = sourceTasks.findIndex((task) => task.id === sourceId);
-    const targetIndex = targetTasks.findIndex((task) => task.id === targetId);
-    if (sourceIndex === -1 || targetIndex === -1) {
-      return;
-    }
-
-    const updated = localReorderTasksInCategory(
-      tasksByCategory,
-      sourceId,
-      sourceCategoryId,
-      targetCategoryId,
-      sourceIndex,
-      targetIndex
-    );
-
-    // Optimistic moving problems are similar to what is described in handleDropInSameCategory()
-    // The same proposed solution may be viable.
-    setTasksByCategory(updated);
-
-    const updatedTargetTasks = updated[targetCategoryId];
-    updateTaskOrder(targetCategoryId, updatedTargetTasks, sourceId);
-  }
-
-  function handleDrop(e: React.DragEvent<HTMLDivElement>, targetId: number | null, targetCategoryId: number) {
-    e.preventDefault();
-
-    const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-
-    const sourceId: number = data.taskId;
-    const sourceCategoryId: number = data.categoryId;
-
-    if (targetId === null) {
-      // This is handled inside CategoryCard component.
-      return;
-    }
-
-    if (sourceId === targetId) {
-      clearDragState();
-      return;
-    }
-
-    if (sourceCategoryId === targetCategoryId) {
-      handleDropInSameCategory(targetCategoryId, sourceId, targetId);
-      clearDragState();
-      return;
-    }
-
-    handleDropInDifferentCategory(sourceId, targetId, sourceCategoryId, targetCategoryId);
-    clearDragState();
-  }
+  const {
+    clearDragState,
+    handleDragStart,
+    handleDragEnter,
+    handleDrop
+  } = useTaskDrag({
+    category,
+    task,
+    tasks,
+    setTasks,
+    tasksByCategory,
+    setTasksByCategory,
+    draggingTask,
+    setDraggingTask,
+    setTaskDropTarget,
+  });
 
   const isDragTarget = taskDropTarget &&
                        taskDropTarget.type === "task" &&
