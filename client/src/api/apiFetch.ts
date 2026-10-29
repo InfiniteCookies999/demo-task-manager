@@ -1,3 +1,4 @@
+import { ApiError } from "./ApiError";
 
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   let response: Response;
@@ -21,7 +22,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
       // Not JSON
     }
 
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   return response;

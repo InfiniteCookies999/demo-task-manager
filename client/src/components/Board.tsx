@@ -20,6 +20,7 @@ import { removeCategoryForDelete } from "../utils/categoryDeleting";
 import { removeTaskForDelete } from "../utils/taskDeleting";
 import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
 import { findTaskCategoryId } from "../utils/taskFinding";
+import { ApiError } from "../api/ApiError";
 
 
 type BoardProps = {
@@ -55,6 +56,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
 
   const [initialStateLoaded, setInitialStateLoaded] = useState(false);
+
+  const [notAuthorized, setNotAuthorized] = useState(false);
 
   const bufferedEvents = useRef<BoardEvent[]>([]);
   const isBufferingEvents = useRef(true);
@@ -203,7 +206,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     applyBoardEvent(event);
   }, [applyBoardEvent]);
 
-  const { connected } = useBoardWebSocket(boardId, handleBoardEvent);
+  const { connected } = useBoardWebSocket(boardId, handleBoardEvent, !notAuthorized);
 
   useEffect(() => {
     // Ensure websocket connection before fetching main content otherwise events may happen
@@ -247,6 +250,10 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         setInitialStateLoaded(true);
 
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          setNotAuthorized(true);
+          return;
+        }
         handleError(err);
       }
     }
@@ -263,6 +270,21 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     } catch (err) {
       handleError(err);
     }
+  }
+
+  if (notAuthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="rounded-lg bg-white p-8 text-center shadow-md">
+          <h1 className="mb-2 text-xl font-semibold text-gray-900">
+            Access Denied
+          </h1>
+          <p className="text-gray-600">
+            You are not authorized to access this board.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
