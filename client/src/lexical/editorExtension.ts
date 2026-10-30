@@ -1,12 +1,14 @@
 import { defineExtension, EditorStateExtension } from "@lexical/extension";
 import { RichTextExtension } from "@lexical/rich-text";
+import { ListExtension } from "@lexical/list";
 
 export const editorExtension = defineExtension({
   name: "MyEditor",
   namespace: "MyEditor",
   dependencies: [
     RichTextExtension,
-    EditorStateExtension
+    EditorStateExtension,
+    ListExtension
   ],
   theme: {
     text: {
@@ -18,6 +20,11 @@ export const editorExtension = defineExtension({
       strikethrough: 'editor-text-strikethrough',
       underline: 'editor-text-underline',
       underlineStrikethrough: 'editor-text-underlineStrikethrough',
+    },
+    list: {
+      ul: "editor-list-ul",
+      ol: "editor-list-ol",
+      listitem: "editor-listitem",
     },
   }
 });

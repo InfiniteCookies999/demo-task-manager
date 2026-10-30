@@ -74,7 +74,7 @@ export default function ViewTaskDialog({ task, onClose }: ViewTaskDialogProps) {
 
         <div>
           <label
-            className="block text-2xl font-medium text-zinc-700 mb-2">
+            className="block text-2xl font-medium text-zinc-800 mb-2">
             Description
           </label>
           {task.description ? (

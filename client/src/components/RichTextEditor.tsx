@@ -14,6 +14,11 @@ import {
   type SerializedEditorState
 } from "lexical";
 import { useEffect, useRef } from "react";
+
+import {
+  INSERT_UNORDERED_LIST_COMMAND
+} from "@lexical/list";
+
 import { editorExtension } from "../lexical/editorExtension";
 
 
@@ -21,7 +26,8 @@ function ToolBar() {
   //https://stackblitz.com/github/facebook/lexical/tree/main/examples/react-rich?file=src%2FApp.tsx,src%2FStyleImportExportExtension.ts
   const [editor] = useLexicalComposerContext();
 
-  // TODO (maddie): why do we need editorState if we can just do editor.read() and it also seems to work?
+  // useSignalValue is subscribing to the editors state changes so we can properly re-render
+  // the ToolBar if state changes.
   const editorState = useSignalValue(useExtensionDependency(EditorStateExtension).output);
 
   const {isBold, isItalic, isUnderline} = editorState.read(
@@ -64,6 +70,21 @@ function ToolBar() {
             {button.icon}
           </button>
         )}
+
+        {/* Bullet list */}
+        <button
+          type="button"
+          title="Bullet list"
+          onMouseDown={(e) => e.preventDefault()}
+          className="h-8 w-8 text-2xl rounded-md hover:bg-zinc-200"
+          onClick={() => {
+            console.log("trying to fire the list command?");
+            editor.focus();
+            editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+          }}
+        >
+          &#8226;
+        </button>
     </div>
   );
 }
