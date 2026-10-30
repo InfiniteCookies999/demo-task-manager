@@ -17,6 +17,7 @@ import { useBoardWebSocket } from "../hooks/useBoardWebSocket";
 import { type BoardEvent } from "../types/event";
 import { ApiError } from "../api/ApiError";
 import { useBoardEvents } from "../hooks/useBoardEvents";
+import ViewBoardsDialog from "./ViewBoardsDialog";
 
 type BoardProps = {
   user: User;
@@ -47,8 +48,8 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const [sendInvitesOpen, setSendInvitesOpen] = useState(false);
   const [viewInvitesOpen, setViewInvitesOpen] = useState(false);
-
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
+  const [viewBoardsOpen, setViewBoardsOpen] = useState(false);
 
   const [initialStateLoaded, setInitialStateLoaded] = useState(false);
 
@@ -187,6 +188,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
                 setInvites={setInvites}
                 setViewInvitesOpen={setViewInvitesOpen}
                 setChangeUsernameOpen={setChangeUsernameOpen}
+                setViewBoardsOpen={setViewBoardsOpen}
               />
           </div>
         </div>
@@ -232,6 +234,9 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
       }
       {changeUsernameOpen &&
         <ChangeUsernameDialog user={user} setUser={setUser} onClose={() => setChangeUsernameOpen(false)} />
+      }
+      {viewBoardsOpen &&
+        <ViewBoardsDialog user={user} onClose={() => setViewBoardsOpen(false)} />
       }
     </>
   );

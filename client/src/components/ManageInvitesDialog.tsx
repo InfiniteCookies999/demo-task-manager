@@ -75,15 +75,16 @@ export default function ManageInvitesDialog(
           >
             <div className="flex flex-col gap-2">
               <span className="text-xl">Invited to {invite.boardOwnerUsername}'s board</span>
-              <span className="text-[#666]">Invited by: {invite.invitedByUsername + "#" + invite.id}</span>
+              <span className="text-[#666]">
+                Invited by: {invite.invitedByUsername + "#" + invite.invitedByUserId}
+              </span>
             </div>
 
             <div className="flex flex-col gap-4">
               <button
                 type="button"
                 className="text-lg rounded-lg border border-zinc-200 bg-zinc-300 px-4 py-2
-                  hover:bg-sky-200 cursor-pointer
-                "
+                           hover:bg-sky-200 cursor-pointer"
                 onClick={() => acceptInvite(invite.id, invite.boardId)}
               >
                 Accept
@@ -91,8 +92,7 @@ export default function ManageInvitesDialog(
               <button
                 type="button"
                 className="text-lg rounded-lg border border-zinc-200 bg-zinc-300 px-4 py-2
-                  hover:bg-red-500 cursor-pointer
-                "
+                           hover:bg-red-500 cursor-pointer"
                 onClick={() => declineInvite(invite.id)}
               >
                 Decline

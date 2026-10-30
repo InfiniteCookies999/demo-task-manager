@@ -12,6 +12,7 @@ type UserNavButtonProps = {
   setInvites: React.Dispatch<React.SetStateAction<Invite[]>>;
   setViewInvitesOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setChangeUsernameOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setViewBoardsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function UserNavButton(
@@ -20,7 +21,8 @@ export default function UserNavButton(
     invites,
     setInvites,
     setViewInvitesOpen,
-    setChangeUsernameOpen
+    setChangeUsernameOpen,
+    setViewBoardsOpen
   }:
   UserNavButtonProps
 ) {
@@ -77,6 +79,7 @@ export default function UserNavButton(
           >
               Change Username
           </button>
+
           <button
             type="button"
             role="menuitem"
@@ -109,6 +112,19 @@ export default function UserNavButton(
                 </span>
               )
             }
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            className="w-full rounded-lg p-3 text-left text-stale-700 cursor-pointer
+                       transition hover:bg-sky-100"
+            onClick={() => {
+              setViewBoardsOpen(true);
+              setIsMenuOpen(false);
+            }}
+          >
+            View Boards
           </button>
         </div>
       )}
