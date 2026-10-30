@@ -25,7 +25,7 @@ export default function DialogTitleAndClose({ title, onClose }: DialogTitleAndCl
           <X className="h-7 w-7" />
         </button>
 
-        <h2 className="mb-6 text-2xl font-semibold flex items-center gap-3">
+        <h2 className="mr-10 min-w-0 break-words mb-6 text-2xl font-semibold flex items-center gap-3">
           {title}
         </h2>
     </>

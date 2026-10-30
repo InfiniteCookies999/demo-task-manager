@@ -6,7 +6,7 @@ export type Task = {
   id: number;
   categoryId: number;
   name: string;
-  description: SerializedEditorState;
+  description: SerializedEditorState | null;
   completed: boolean;
   position: number;
 };

@@ -1,4 +1,4 @@
-import { SquarePen } from "lucide-react";
+import { FileText, ListSortAscending, SquareDashed, SquareDashedText, SquarePen, SquareText, TextAlignCenter, TextAlignStart } from "lucide-react";
 import type { Task, TaskDropTarget } from "../types/task";
 import { apiFetch } from "../api/apiFetch";
 import type { Category } from "../types/category";
@@ -8,6 +8,7 @@ import EditTaskDialog from "./EditTaskDialog";
 import ViewTaskDialog from "./ViewTaskDialog";
 import TaskCompletedCircle from "./TaskCompletedCircle";
 import { useTaskDrag } from "../hooks/useTaskDrag";
+import type { SerializedEditorState, SerializedLexicalNode } from "lexical";
 
 type TaskProps = {
   category: Category;
@@ -54,6 +55,23 @@ function DropArea(
         handleDrop(e, task?.id ?? null, category.id)
       }}
     />
+  );
+}
+
+function hasDescription(description: SerializedEditorState | null) {
+  if (!description?.root?.children) return false;
+
+  // check for lexical empty case involving a single paragraph child which
+  // itself has no children.
+  const children: SerializedLexicalNode[] = description.root.children;
+  return !(
+    children.length === 1 &&
+    children[0].type === "paragraph" &&
+    (
+      "children" in children[0] &&
+      Array.isArray(children[0].children) &&
+      children[0].children.length === 0
+    )
   );
 }
 
@@ -175,8 +193,8 @@ export default function TaskCard(
         (
           <div
             className={
-              `bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 pl-3 flex items-center justify-between text-lg
-              mb-2 cursor-pointer
+              `bg-zinc-50 shrink-0 rounded-lg border border-zinc-300 pl-3
+              mb-2 cursor-pointer py-1
               ${(draggingTask && draggingTask.id === task.id) ? "opacity-30" : "opacity-100"}
             `}
             data-task-id={task.id}
@@ -186,31 +204,38 @@ export default function TaskCard(
               setIsViewOpen(true);
             }}
             >
-            <div className="flex items-start gap-2">
-              <button
-                type="button"
-                title={task.completed ? "Mark Not Complete" : "Mark Complete"}
-                aria-label="Mark Complete"
-                className="shrink-0 cursor-pointer"
+            <div className="flex items-center justify-between text-lg">
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  title={task.completed ? "Mark Not Complete" : "Mark Complete"}
+                  aria-label="Mark Complete"
+                  className="shrink-0 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markCompleted(task.id, task.completed)
+                  }}
+                >
+                  <TaskCompletedCircle task={task} clickable={false} />
+                </button>
+
+                <span className={`min-w-0 break-words ${task.completed ? "text-[#777]" : ""}`}>{task.name}</span>
+              </div>
+
+              <div
+                className="p-4 rounded-lg cursor-pointer hover:bg-sky-200 shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
-                  markCompleted(task.id, task.completed)
+                  setIsEditOpen(true);
                 }}
               >
-                <TaskCompletedCircle task={task} clickable={false} />
-              </button>
-
-              <span className={`min-w-0 break-words ${task.completed ? "text-[#777]" : ""}`}>{task.name}</span>
+                <SquarePen />
+              </div>
             </div>
-
-            <div
-              className="p-4 rounded-lg cursor-pointer hover:bg-sky-200 shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditOpen(true);
-              }}
-            >
-              <SquarePen />
+            <div>
+              {hasDescription(task.description) ?
+                <FileText size={26} strokeWidth={1.5} className="mb-2" /> : null
+              }
             </div>
           </div>
         )
