@@ -1,7 +1,6 @@
 package infinitecookies.task.manager.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +15,7 @@ import java.util.Set;
 public class Board {
 
     public static final int MAX_CATEGORIES = 30;
+    public static final String VALID_COLOR_PATTERN = "^#[0-9a-fA-F]{6}$";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,5 +40,18 @@ public class Board {
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Category> categories;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BackgroundType backgroundType = BackgroundType.GRADIENT;
+
+    @Column(nullable = false)
+    private String backgroundSolidColor = "#EFF6FF";
+
+    @Column(nullable = false)
+    private String backgroundGradientStartColor = "#EFF6FF";
+
+    @Column(nullable = false)
+    private String backgroundGradientEndColor = "#FDF2F8";
 
 }

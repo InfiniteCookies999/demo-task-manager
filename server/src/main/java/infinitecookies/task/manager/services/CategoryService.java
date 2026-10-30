@@ -57,8 +57,6 @@ public class CategoryService {
         }
 
         Category category = new Category();
-        category.setName("Untitled");
-        category.setColor(CategoryColor.GRAY);
         category.setBoard(boardRepository.getReferenceById(boardId));
         category.setPosition((int) nextPosition);
         categoryRepository.save(category);

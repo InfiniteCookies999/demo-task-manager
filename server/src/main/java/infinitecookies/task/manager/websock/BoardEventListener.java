@@ -61,6 +61,12 @@ public class BoardEventListener {
         send(BoardEventType.TASK_DELETED, event.boardId(), event);
     }
 
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onCategoryCreated(BackgroundUpdatedEvent event) {
+        send(BoardEventType.BACKGROUND_UPDATED, event.boardId(), event);
+    }
+
     private void send(BoardEventType type, Long boardId, Object payload) {
         messagingTemplate.convertAndSend("/topic/board/" + boardId, new BoardWebSocketEvent(type, payload));
     }

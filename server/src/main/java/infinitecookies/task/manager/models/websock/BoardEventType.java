@@ -9,5 +9,7 @@ public enum BoardEventType {
     TASK_CREATED,
     TASK_UPDATED,
     TASKS_REORDERED,
-    TASK_DELETED
+    TASK_DELETED,
+
+    BACKGROUND_UPDATED
 }

@@ -25,11 +25,11 @@ public class Category {
     private Board board;
 
     @Column(nullable = false, length = MAX_NAME_LENGTH)
-    private String name;
+    private String name = "Untitled";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
-    private CategoryColor color;
+    private CategoryColor color = CategoryColor.GRAY;
 
     @Column(nullable = false)
     private Integer position;
