@@ -284,6 +284,7 @@ public class CategoryServiceTests {
         Long boardId = 1L;
         Long deleteCategoryId = 2L;
 
+        // Remaining categories.
         Category category1 = new Category();
         category1.setId(1L);
         category1.setPosition(0);

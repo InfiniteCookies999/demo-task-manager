@@ -31,10 +31,10 @@ public class Task {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private JsonNode description;
+    private JsonNode description = null;
 
     @Column(nullable = false)
-    private boolean completed;
+    private boolean completed = false;
 
     // TODO (maddie): once we have a user system this should include date created and
     //                by who.

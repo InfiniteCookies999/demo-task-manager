@@ -17,9 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -63,8 +61,6 @@ public class TaskService {
 
         Task task = new Task();
         task.setName(request.name());
-        task.setDescription(null);
-        task.setCompleted(false);
         task.setPosition(nextPosition);
         task.setCategory(category);
         taskRepository.save(task);
@@ -119,25 +115,11 @@ public class TaskService {
 
         boardService.checkHasAuthorization(userId, boardId);
 
-        // TODO (maddie): its unclear if this logic catches duplicates. When we write tests we
-        //                should explicitly check for that.
-
         Category targetCategory =
             categoryRepository.findByIdAndBoardId(request.targetCategoryId(), boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target category not found"));
 
-        // Find all tasks including the moved task.
-        List<Task> tasks = taskRepository.findByIdInAndCategoryBoardId(request.taskIds(), boardId);
-        if (tasks.size() != request.taskIds().size()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more tasks not found");
-        }
-
-        if (tasks.size() > Category.MAX_TASKS) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "A category cannot have more than " + Category.MAX_TASKS + " tasks"
-            );
-        }
+        List<Task> tasks = findAndValidateTasksForReorder(boardId, request);
 
         // Reorder the tasks to match the request order so the positions may be updated
         // correctly.
@@ -147,10 +129,6 @@ public class TaskService {
         tasks = request.taskIds().stream()
             .map(tasksById::get)
             .toList();
-
-        // Make sure all provided task IDs are either the moved task or already in the target
-        // category.
-        validateTasksInTargetCategoryForReorder(request, tasks);
 
         Task movedTask = getAndValidateMovedTaskForReorder(request, tasks, targetCategory);
 
@@ -203,15 +181,40 @@ public class TaskService {
         ));
     }
 
-    private void validateTasksInTargetCategoryForReorder(TaskReorderRequest request, List<Task> tasks) {
+    private List<Task> findAndValidateTasksForReorder(Long boardId, TaskReorderRequest request) {
+
+        // Check for duplicates.
+        Set<Long> uniqueIds = new HashSet<>(request.taskIds());
+        if (uniqueIds.size() != request.taskIds().size()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Duplicate task IDs are not allowed");
+        }
+
+        // Find all tasks including the moved task.
+        List<Task> tasks = taskRepository.findByIdInAndCategoryBoardId(request.taskIds(), boardId);
+        if (tasks.size() != request.taskIds().size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more tasks not found");
+        }
+
+        if (tasks.size() > Category.MAX_TASKS) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A category cannot have more than " + Category.MAX_TASKS + " tasks"
+            );
+        }
+
+        // Make sure all provided task IDs are either the moved task or already in target
+        // category.
         for (Task task : tasks) {
             if (!Objects.equals(task.getCategory().getId(), request.targetCategoryId())) {
                 if (!Objects.equals(task.getId(), request.movedTaskId())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Task neither the moved or in target category");
+                    throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Task neither the moved task or in target category");
                 }
             }
         }
+
+        return tasks;
     }
 
     private Task getAndValidateMovedTaskForReorder(
@@ -231,9 +234,7 @@ public class TaskService {
         Long sourceCategoryId = movedTask.getCategory().getId();
         if (Objects.equals(sourceCategoryId, targetCategory.getId())) {
             throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Moved task must belong to a different category"
-            );
+                HttpStatus.BAD_REQUEST, "Moved task must belong to a different category");
         }
         return movedTask;
     }
@@ -242,6 +243,7 @@ public class TaskService {
     public void deleteTask(Long userId, Long boardId, Long id) {
         boardService.checkHasAuthorization(userId, boardId);
 
+        // Fetch the task since we need to know its category to renormalize the positions.
         Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
         long categoryId = task.getCategory().getId();

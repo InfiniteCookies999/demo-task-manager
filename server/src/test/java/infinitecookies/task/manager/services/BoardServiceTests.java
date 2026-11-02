@@ -89,10 +89,8 @@ public class BoardServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(boardRepository.findById(1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e = assertThrows(
-            ResponseStatusException.class,
-            () -> boardService.getBoard(1L, 1L)
-        );
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+            () -> boardService.getBoard(1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
     }
