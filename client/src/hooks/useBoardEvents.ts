@@ -1,16 +1,18 @@
 import { useCallback } from "react";
 import type { Category } from "../types/category";
 import type { Task } from "../types/task";
-import type { BoardEvent, CategoryUpdatedEventPayload, TasksReorderedEventPayload, TaskUpdatedEventPayload } from "../types/event";
+import type { BackgroundUpdatedEventPayload, BoardEvent, CategoryUpdatedEventPayload, TasksReorderedEventPayload, TaskUpdatedEventPayload } from "../types/event";
 import { reorderCategories } from "../utils/categoryReordering";
 import { removeCategoryForDelete } from "../utils/categoryDeleting";
 import { findTaskCategoryId } from "../utils/taskFinding";
 import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
 import { removeTaskForDelete } from "../utils/taskDeleting";
+import type { Board } from "../types/board";
 
 export function useBoardEvents(
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>,
-  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>
+  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>,
+  setBoard: React.Dispatch<React.SetStateAction<Board | null>>
 ) {
 
   const addCategory = useCallback((category: Category) => {
@@ -158,6 +160,27 @@ export function useBoardEvents(
         const taskId: number = event.payload.taskId;
         const categoryId: number = event.payload.categoryId;
         setTasksByCategory((current) => removeTaskForDelete(taskId, categoryId, current));
+        break;
+      }
+      case "BACKGROUND_UPDATED": {
+        const {
+          backgroundType,
+          backgroundSolidColor,
+          backgroundGradientStartColor,
+          backgroundGradientEndColor
+        }: BackgroundUpdatedEventPayload = event.payload;
+
+        setBoard((current) => {
+          if (!current) return null;
+
+          return {
+            ...current,
+            backgroundType: backgroundType,
+            backgroundSolidColor: backgroundSolidColor,
+            backgroundGradientStartColor: backgroundGradientStartColor,
+            backgroundGradientEndColor: backgroundGradientEndColor
+          };
+        });
         break;
       }
     }

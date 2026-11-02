@@ -4,17 +4,10 @@ import App from './App.tsx'
 import "./index.css";
 import { BrowserRouter } from 'react-router-dom';
 
-
-/*
-<StrictMode>
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </StrictMode>,*/
-
-createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
-
+  </StrictMode>,
 )

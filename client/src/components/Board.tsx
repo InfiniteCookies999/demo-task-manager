@@ -18,6 +18,8 @@ import { type BoardEvent } from "../types/event";
 import { ApiError } from "../api/ApiError";
 import { useBoardEvents } from "../hooks/useBoardEvents";
 import ViewBoardsDialog from "./ViewBoardsDialog";
+import type { Board } from "../types/board";
+import ChangeBackgroundDialog from "./ChangeBackgroundDialog";
 
 type BoardProps = {
   user: User;
@@ -29,6 +31,8 @@ type BoardProps = {
 export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const { handleError } = useAppContext();
+
+  const [board, setBoard] = useState<Board | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -47,6 +51,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
   const [invites, setInvites] = useState<Invite[]>([]);
 
   const [sendInvitesOpen, setSendInvitesOpen] = useState(false);
+  const [changeBackgroundOpen, setChangeBackgroundOpen] = useState(false);
   const [viewInvitesOpen, setViewInvitesOpen] = useState(false);
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
   const [viewBoardsOpen, setViewBoardsOpen] = useState(false);
@@ -62,7 +67,7 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     addCategory,
     addTask,
     applyBoardEvent
-  } = useBoardEvents(setCategories, setTasksByCategory);
+  } = useBoardEvents(setCategories, setTasksByCategory, setBoard);
 
   const handleBoardEvent = useCallback((event: BoardEvent) => {
     if (isBufferingEvents.current) {
@@ -85,8 +90,11 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
     isBufferingEvents.current = true;
     bufferedEvents.current = [];
 
-    async function fetchCategoriesAndTasks() {
+    async function fetchBoardContent() {
       try {
+        const boardResponse = await apiFetch(`/api/boards/${boardId}`);
+        const board: Board = await boardResponse.json();
+
         const categoriesResponse = await apiFetch(`/api/boards/${boardId}/categories`);
         const categories: Category[] = await categoriesResponse.json();
 
@@ -102,6 +110,9 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
           groupedTasks[task.categoryId].push(task);
         }
 
+        document.title = `${board.boardOwnerUsername}'s board | task-manager`;
+
+        setBoard(board);
         setCategories(categories);
         setTasksByCategory(groupedTasks);
 
@@ -124,8 +135,13 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         handleError(err);
       }
     }
-    fetchCategoriesAndTasks();
+    fetchBoardContent();
   }, [connected, boardId, applyBoardEvent]);
+
+  useEffect(() => {
+    if (!board) return;
+    document.title = `${board.boardOwnerUsername}'s board | task-manager`;
+  }, [board]);
 
   async function createCategory() {
     try {
@@ -157,8 +173,20 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
   const MAX_CATEGORIES = 30;
 
   return (
+    board &&
     <>
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <div
+        className="flex flex-col min-h-screen"
+        style={{
+          background:
+            board.backgroundType === "SOLID"
+            ? board.backgroundSolidColor
+            : `linear-gradient(to bottom right,
+              ${board.backgroundGradientStartColor},
+              ${board.backgroundGradientEndColor}
+            )`
+        }}
+      >
         <div className="border-b border-zinc-300 bg-slate-50 px-8 py-6">
             <div className="flex w-full justify-between">
               <div className="flex gap-3">
@@ -176,8 +204,12 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
                           : "Create Category"}
                       </span>
                     </ActionButton>
-                    <ActionButton onClick={() => setSendInvitesOpen(true)}>Invite</ActionButton>
-                    <ActionButton onClick={() => {}}>Change Background</ActionButton>
+                    <ActionButton onClick={() => setSendInvitesOpen(true)}>
+                      Invite
+                    </ActionButton>
+                    <ActionButton onClick={() => setChangeBackgroundOpen(true)}>
+                      Change Background
+                    </ActionButton>
                   </>
                 )}
               </div>
@@ -219,7 +251,6 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         ))}
         </div>
 
-        {/* TODO (maddie): ideally this ends up being abstracted out */}
         <ErrorAlert error={error}/>
       </div>
       {sendInvitesOpen &&
@@ -233,10 +264,22 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         />
       }
       {changeUsernameOpen &&
-        <ChangeUsernameDialog user={user} setUser={setUser} onClose={() => setChangeUsernameOpen(false)} />
+        <ChangeUsernameDialog
+          user={user}
+          setUser={setUser}
+          setBoard={setBoard}
+          onClose={() => setChangeUsernameOpen(false)}
+        />
       }
       {viewBoardsOpen &&
         <ViewBoardsDialog user={user} onClose={() => setViewBoardsOpen(false)} />
+      }
+      {changeBackgroundOpen &&
+        <ChangeBackgroundDialog
+          board={board}
+          setBoard={setBoard}
+          onClose={() => setChangeBackgroundOpen(false)}
+        />
       }
     </>
   );

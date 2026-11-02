@@ -15,6 +15,8 @@ function App() {
   const hasLoggedIn = useRef(false);
 
   useEffect(() => {
+      document.title = "task-manager";
+
     // Strict Mode will send the session request twice. Preventing that
     // or sessions will be out of sync.
     if (hasLoggedIn.current) return;

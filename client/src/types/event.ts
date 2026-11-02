@@ -1,5 +1,6 @@
 import type { SerializedEditorState } from "lexical";
 import type { CategoryColor } from "./category";
+import type { BackgroundType } from "./board";
 
 export type BoardEvent = {
   type: string;
@@ -32,4 +33,11 @@ export type TasksReorderedEventPayload = {
   sourceTaskIds?: number[];
   targetTaskIds: number[];
   movedTaskId?: number;
+};
+
+export type BackgroundUpdatedEventPayload = {
+  backgroundType: BackgroundType;
+  backgroundSolidColor: string;
+  backgroundGradientStartColor: string;
+  backgroundGradientEndColor: string;
 };

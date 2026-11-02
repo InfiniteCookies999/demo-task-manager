@@ -5,15 +5,17 @@ import type { User } from "../types/user";
 import { useAppContext } from "../contexts/AppContext";
 import { apiFetch } from "../api/apiFetch";
 import { CheckCircle2 } from "lucide-react";
+import type { Board } from "../types/board";
 
 type ChangeUsernameDialogProps = {
   user: User;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setBoard: React.Dispatch<React.SetStateAction<Board | null>>;
   onClose: () => void;
 };
 
 export default function ChangeUsernameDialog(
-  { user, setUser, onClose }:
+  { user, setUser, setBoard, onClose }:
   ChangeUsernameDialogProps
 ) {
 
@@ -50,6 +52,13 @@ export default function ChangeUsernameDialog(
       setUser((current) => {
         if (!current) return null;
         return {...current, username: editUsername };
+      });
+      setBoard((current) => {
+        if (!current) return null;
+        if (current.boardOwnerId === user.id) {
+          return {...current, boardOwnerUsername: editUsername};
+        }
+        return current;
       });
       setChangeSuccessful(true);
     } catch (err) {

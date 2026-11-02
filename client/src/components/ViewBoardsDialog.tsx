@@ -60,7 +60,7 @@ export default function ViewBoardsDialog({ user, onClose }: ViewBoardsDialogProp
             className="flex flex-col gap-4 mt-2 rounded-lg border border-zinc-200 bg-white shadow-sm p-3"
           >
             <span className="text-xl">
-              {board.boardOwnerUsername + "#" + board.boardOwnerId}'s Board
+              {board.boardOwnerUsername + "#" + board.boardOwnerId}'s board
               {board.boardOwnerId === user.id && (
                 <span className="ml-2 text-md text-[#999]">
                   (your board)

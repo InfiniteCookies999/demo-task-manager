@@ -18,9 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -99,12 +97,16 @@ public class CategoryService {
     public void reorderCategories(Long userId, Long boardId, CategoryReorderRequest request) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        // TODO (maddie): its unclear if this logic catches duplicates. When we write tests we
-        //                should explicitly check for that.
-
         List<Category> categories = categoryRepository.findAllByBoardId(boardId);
         if (categories.size() != request.categoryIds().size()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Must specify the re-ordering for all categories");
+        }
+
+        // Check for duplicates.
+        Set<Long> uniqueIds = new HashSet<>(request.categoryIds());
+        if (uniqueIds.size() != request.categoryIds().size()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Duplicate category IDs are not allowed");
         }
 
         // Reorder the categories to match the request order so the positions may be updated
