@@ -7,10 +7,13 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Validates that the Task description matches roughly what is expected out of a serialized lexical
+ * state.
+ */
 public class TaskDescriptionValidator implements ConstraintValidator<ValidTaskDescription, JsonNode> {
 
-    private static final int MAX_CHARACTERS = 250;
-    private static final int MAX_JSON_BYTES = MAX_CHARACTERS * 1024;
+    private static final int MAX_JSON_BYTES = 250 * 1024;
 
     private final ObjectMapper objectMapper;
 
@@ -21,31 +24,37 @@ public class TaskDescriptionValidator implements ConstraintValidator<ValidTaskDe
     @Override
     public boolean isValid(JsonNode description, ConstraintValidatorContext context) {
         // Allow for no description.
-        if (description == null) {
+        if (description == null || description.isNull()) {
             return true;
         }
         try {
-            String json = objectMapper.writeValueAsString(description);
-            if (json.getBytes(StandardCharsets.UTF_8).length > MAX_JSON_BYTES) {
-                // TODO
+            if (!description.isObject()) {
                 return false;
             }
 
+            // Prevent it from being too long.
+            String jsonString = objectMapper.writeValueAsString(description);
+            if (jsonString.getBytes(StandardCharsets.UTF_8).length > MAX_JSON_BYTES) {
+                return false;
+            }
+
+            // Lexical descriptions should begin with a root node as an object.
             JsonNode root = description.get("root");
+            if (root == null || !root.isObject()) {
+                return false;
+            }
+
+            JsonNode rootType = root.get("type");
 
             // Make sue it matches lexical editor state.
-            if (!description.isObject() ||
-                root == null ||
-                !root.isObject() ||
-                !root.has("type") ||
-                root.stringValue("type").equals("root")) {
-                // TODO
+            if (rootType == null || !rootType.isString() ||
+                !rootType.asString().equals("root")) {
                 return false;
             }
 
-            return true;
+            JsonNode children = root.get("children");
+            return children != null && children.isArray();
         } catch (Exception e) {
-            // TODO
             return false;
         }
     }

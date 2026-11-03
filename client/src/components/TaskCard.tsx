@@ -1,4 +1,4 @@
-import { FileText, ListSortAscending, SquareDashed, SquareDashedText, SquarePen, SquareText, TextAlignCenter, TextAlignStart } from "lucide-react";
+import { FileText, SquarePen } from "lucide-react";
 import type { Task, TaskDropTarget } from "../types/task";
 import { apiFetch } from "../api/apiFetch";
 import type { Category } from "../types/category";
