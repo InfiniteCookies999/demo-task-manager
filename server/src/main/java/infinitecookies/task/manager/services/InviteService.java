@@ -63,7 +63,6 @@ public class InviteService {
         invite.setBoard(boardRepository.getReferenceById(boardId));
 
         inviteRepository.save(invite);
-
     }
 
     public List<InviteResponse> getInvites(Long userId) {
@@ -107,7 +106,6 @@ public class InviteService {
 
         // The invite is no longer needed the user accepted the invite.
         inviteRepository.delete(invite);
-
     }
 
     public void deleteInvite(Long userId, Long id) {
