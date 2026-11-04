@@ -11,6 +11,10 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     long countByCategoryId(Long categoryId);
 
+    /**
+     * @return All tasks belonging to a board. Ordered first by category ID
+     * and then task position.
+     */
     @Query("""
         SELECT t
         FROM Task t

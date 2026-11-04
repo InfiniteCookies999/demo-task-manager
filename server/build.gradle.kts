@@ -30,7 +30,14 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	// Using postgres test container over H2 because H2 cannot seem to properly work
+	// with JSONB.
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:junit-jupiter:1.21.3")
+	testImplementation("org.testcontainers:postgresql:1.21.3")
 }
 
 tasks.withType<Test> {
