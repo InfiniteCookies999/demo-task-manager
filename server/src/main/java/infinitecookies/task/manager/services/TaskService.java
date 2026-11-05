@@ -1,6 +1,5 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.dto.CreateTaskRequest;
@@ -11,10 +10,10 @@ import infinitecookies.task.manager.models.websock.*;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;

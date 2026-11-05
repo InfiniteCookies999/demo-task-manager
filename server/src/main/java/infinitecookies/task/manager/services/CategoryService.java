@@ -2,7 +2,6 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Category;
-import infinitecookies.task.manager.models.CategoryColor;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
@@ -12,10 +11,10 @@ import infinitecookies.task.manager.models.websock.CategoryDeletedEvent;
 import infinitecookies.task.manager.models.websock.CategoryUpdatedEvent;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;

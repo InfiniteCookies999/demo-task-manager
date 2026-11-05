@@ -5,9 +5,9 @@ import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.ChangeUsernameRequest;
 import infinitecookies.task.manager.models.dto.UserAccountResponse;
 import infinitecookies.task.manager.repositories.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 

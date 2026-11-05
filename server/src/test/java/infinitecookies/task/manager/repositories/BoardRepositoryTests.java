@@ -25,10 +25,10 @@ public class BoardRepositoryTests {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
     @Autowired
-    private BoardRepository boardRepository;
+    private TestEntityManager entityManager;
 
     @Autowired
-    private TestEntityManager entityManager;
+    private BoardRepository boardRepository;
 
     @Test
     void isUserAllowedForAllowedUser() {

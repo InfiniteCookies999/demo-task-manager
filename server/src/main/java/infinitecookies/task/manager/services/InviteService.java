@@ -2,7 +2,6 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Invite;
-import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.InviteResponse;
 import infinitecookies.task.manager.models.dto.SendInviteRequest;
@@ -10,9 +9,9 @@ import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -65,12 +64,14 @@ public class InviteService {
         inviteRepository.save(invite);
     }
 
+    @Transactional(readOnly = true)
     public List<InviteResponse> getInvites(Long userId) {
         return inviteRepository.findAllByInvitedUserId(userId).stream()
             .map(InviteResponse::fromInvite)
             .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<UserInviteSearchResponse> searchUsers(Long sessionUserId, Long boardId, String username) {
         boardService.checkHasAuthorization(sessionUserId, boardId);
 

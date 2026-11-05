@@ -5,11 +5,11 @@ import infinitecookies.task.manager.models.dto.BoardResponse;
 import infinitecookies.task.manager.models.dto.BoardBackgroundUpdateRequest;
 import infinitecookies.task.manager.models.websock.BackgroundUpdatedEvent;
 import infinitecookies.task.manager.repositories.BoardRepository;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;

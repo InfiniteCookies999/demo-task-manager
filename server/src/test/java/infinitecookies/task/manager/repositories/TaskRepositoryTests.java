@@ -25,10 +25,10 @@ public class TaskRepositoryTests {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
     @Autowired
-    private TaskRepository taskRepository;
+    private TestEntityManager entityManager;
 
     @Autowired
-    private TestEntityManager entityManager;
+    private TaskRepository taskRepository;
 
     @Test
     void findAllByBoardIdReturnsTasksOrderedByCategoryAndPosition() {
