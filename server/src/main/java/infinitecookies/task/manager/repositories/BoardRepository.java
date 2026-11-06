@@ -18,7 +18,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
         JOIN b.allowedUsers u
         WHERE b.id = :boardId AND u.id = :userId
         """)
-    boolean isUserAllowed(Long boardId, Long userId);
+    boolean isUserAllowed(@Param("boardId") Long boardId, @Param("userId") Long userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Board b WHERE b.id = :boardId")

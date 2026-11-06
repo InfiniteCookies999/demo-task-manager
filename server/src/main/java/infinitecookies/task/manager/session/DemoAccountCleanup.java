@@ -1,9 +1,11 @@
 package infinitecookies.task.manager.session;
 
 import infinitecookies.task.manager.models.Invite;
+import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
+import infinitecookies.task.manager.repositories.TaskRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.ApplicationArguments;
@@ -18,13 +20,16 @@ public class DemoAccountCleanup implements ApplicationRunner {
     private final UserRepository userRepository;
     private final BoardRepository boardRepository;
     private final InviteRepository inviteRepository;
+    private final TaskRepository taskRepository;
 
     public DemoAccountCleanup(UserRepository userRepository,
                               BoardRepository boardRepository,
-                              InviteRepository inviteRepository) {
+                              InviteRepository inviteRepository,
+                              TaskRepository taskRepository) {
         this.userRepository = userRepository;
         this.boardRepository = boardRepository;
         this.inviteRepository = inviteRepository;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -32,7 +37,7 @@ public class DemoAccountCleanup implements ApplicationRunner {
     public void run(ApplicationArguments args) {
 
         // Cascade:
-        // User -> default board -> categories -> tasks
+        // User -> owned board -> categories -> tasks
 
         // Note: if we ever have more than demo users we would only want to
         // delete those users where a "demo_user" flag is set. But since this
@@ -52,10 +57,16 @@ public class DemoAccountCleanup implements ApplicationRunner {
             invite.getBoard().getInvites().remove(invite);
         }
 
+        // Clear assignees relational table.
+        List<Task> tasks = taskRepository.findAll();
+        for (Task task : tasks) {
+            task.getAssignees().clear();
+        }
+
         boardRepository.flush();
 
         // Must call deleteAll() over deleteAllInBatch() because cascade removal
-        // needs to occure.
+        // needs to occur.
         userRepository.deleteAll();
 
     }

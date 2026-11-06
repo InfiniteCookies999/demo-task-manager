@@ -1,13 +1,12 @@
 import { useState } from "react";
-import type { User } from "../types/user";
 import type { Invite } from "../types/invite";
 import { CircleUserRound, Mail } from "lucide-react";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
+import { useUserContext } from "../contexts/UserContext";
 
 
 type UserNavButtonProps = {
-  user: User | null;
   invites: Invite[];
   setInvites: React.Dispatch<React.SetStateAction<Invite[]>>;
   setViewInvitesOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -17,7 +16,6 @@ type UserNavButtonProps = {
 
 export default function UserNavButton(
   {
-    user,
     invites,
     setInvites,
     setViewInvitesOpen,
@@ -28,6 +26,7 @@ export default function UserNavButton(
 ) {
 
   const { handleError } = useAppContext();
+  const { user } = useUserContext();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

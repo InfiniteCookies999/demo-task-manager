@@ -8,12 +8,15 @@ import { findTaskCategoryId } from "../utils/taskFinding";
 import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
 import { removeTaskForDelete } from "../utils/taskDeleting";
 import type { Board } from "../types/board";
+import { useUserContext } from "../contexts/UserContext";
 
 export function useBoardEvents(
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>,
   setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>,
   setBoard: React.Dispatch<React.SetStateAction<Board | null>>
 ) {
+
+  const { user } = useUserContext();
 
   const addCategory = useCallback((category: Category) => {
     setCategories((current) => {
@@ -106,7 +109,8 @@ export function useBoardEvents(
           taskId,
           name,
           description,
-          completed
+          completed,
+          assignedUserIds
         }: TaskUpdatedEventPayload = event.payload;
 
         setTasksByCategory((current) => {
@@ -116,6 +120,8 @@ export function useBoardEvents(
             return current;
           }
 
+          const assignedToYou = assignedUserIds?.includes(user.id) ?? false;
+
           const tasks = current[foundCategoryId];
           const reordered = tasks
             .map((task) => task.id === taskId
@@ -123,7 +129,8 @@ export function useBoardEvents(
                   ...task,
                   name: name ?? task.name,
                   description: description ?? task.description,
-                  completed: completed ?? task.completed
+                  completed: completed ?? task.completed,
+                  assignedToYou: assignedUserIds ? assignedToYou : task.assignedToYou
                 }
               : task
             );
@@ -183,6 +190,20 @@ export function useBoardEvents(
         });
         break;
       }
+      // case "TASK_ASSIGNEE_ADDED": {
+      //   const { categoryId, taskId, assignedUserId }: TaskAssigneeAddedEventPayload = event.payload;
+      //   if (assignedUserId === user.id) {
+      //     setTasksByCategory((current) => toggleTaskAssignedToYou(true, taskId, categoryId, current));
+      //   }
+      //   break;
+      // }
+      // case "TASK_ASSIGNEE_REMOVED": {
+      //   const { categoryId, taskId, assignedUserId }: TaskAssigneeAddedEventPayload = event.payload;
+      //   if (assignedUserId === user.id) {
+      //     setTasksByCategory((current) => toggleTaskAssignedToYou(false, taskId, categoryId, current));
+      //   }
+      //   break;
+      // }
     }
   }, [addCategory, addTask, setCategories, setTasksByCategory]);
 

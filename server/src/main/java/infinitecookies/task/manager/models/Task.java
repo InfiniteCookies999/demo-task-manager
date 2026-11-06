@@ -7,6 +7,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import tools.jackson.databind.JsonNode;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 @Entity
 @Table(name = "tasks")
 @Getter
@@ -19,7 +24,7 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
@@ -36,9 +41,18 @@ public class Task {
     @Column(nullable = false)
     private boolean completed = false;
 
-    // TODO (maddie): once we have a user system this should include date created and
-    //                by who.
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "created_by_user", nullable = false)
+    private User createdByUser;
 
-    // TODO (maddie): assignees
+    @ManyToMany
+    @JoinTable(
+        // Name of the table containing the relational mapping.
+        name = "task_assignees",
+        // Names of the columns in the table.
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> assignees = new HashSet<>();
 
 }

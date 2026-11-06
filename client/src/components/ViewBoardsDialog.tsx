@@ -5,16 +5,16 @@ import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import type { Board } from "../types/board";
 import { useNavigate } from "react-router-dom";
-import type { User } from "../types/user";
+import { useUserContext } from "../contexts/UserContext";
 
 type ViewBoardsDialogProps = {
-  user: User;
   onClose: () => void;
 };
 
-export default function ViewBoardsDialog({ user, onClose }: ViewBoardsDialogProps) {
+export default function ViewBoardsDialog({ onClose }: ViewBoardsDialogProps) {
 
   const { handleError } = useAppContext();
+  const { user } = useUserContext();
 
   const Navigate = useNavigate();
 

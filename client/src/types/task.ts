@@ -9,6 +9,21 @@ export type Task = {
   description: SerializedEditorState | null;
   completed: boolean;
   position: number;
+  createdById: number;
+  createdByUsername: string;
+  assignedToYou: boolean;
+};
+
+export type TaskAssignee = {
+  id: number;
+  username: string;
+  assigned?: boolean;
+};
+
+export type TaskAssigneeSearchResult = {
+  id: number;
+  username: string;
+  alreadyAssigned: boolean;
 };
 
 export type TaskDropTarget =

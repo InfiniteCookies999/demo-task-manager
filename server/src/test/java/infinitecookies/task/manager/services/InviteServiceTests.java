@@ -224,7 +224,7 @@ public class InviteServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(boardRepository.findById(boardId)).thenReturn(Optional.of(board));
-        when(userRepository.findTop10ByUsernameContainingIgnoreCase("user"))
+        when(userRepository.findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc("user"))
             .thenReturn(List.of(sessionUser, invitedUser, allowedUser, normalUser));
 
         List<UserInviteSearchResponse> response = inviteService.searchUsers(sessionUserId, boardId, "user");
@@ -248,7 +248,7 @@ public class InviteServiceTests {
         assertFalse(response.get(2).alreadyMember());
 
         verify(boardRepository).findById(boardId);
-        verify(userRepository).findTop10ByUsernameContainingIgnoreCase("user");
+        verify(userRepository).findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc("user");
     }
 
     @Test

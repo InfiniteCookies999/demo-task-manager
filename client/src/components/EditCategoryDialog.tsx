@@ -7,6 +7,7 @@ import { apiFetch } from "../api/apiFetch";
 import { createPortal } from "react-dom";
 import DialogTitleAndClose from "./DialogTitleAndClose";
 import { removeCategoryForDelete } from "../utils/categoryDeleting";
+import SaveAndCancelButtons from "./SaveAndCancelButtons";
 
 
 type EditCategoryDialogProps = {
@@ -166,15 +167,7 @@ export default function EditCategoryDialog(
           </div>
         </div>
 
-        {/* Save/Delete buttons */}
-        <button
-          type="button"
-          onClick={saveCategory}
-          className="text-xl w-30 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 cursor-pointer"
-          >
-          Save
-        </button>
-        <br/>
+        <SaveAndCancelButtons onSave={saveCategory} onCancel={close} />
 
         <DeleteCollapsable
           className="mt-8"

@@ -1,4 +1,4 @@
-import { FileText, SquarePen } from "lucide-react";
+import { FileText, SquarePen, UserRound } from "lucide-react";
 import type { Task, TaskDropTarget } from "../types/task";
 import { apiFetch } from "../api/apiFetch";
 import type { Category } from "../types/category";
@@ -8,7 +8,7 @@ import EditTaskDialog from "./EditTaskDialog";
 import ViewTaskDialog from "./ViewTaskDialog";
 import TaskCompletedCircle from "./TaskCompletedCircle";
 import { useTaskDrag } from "../hooks/useTaskDrag";
-import type { SerializedEditorState, SerializedLexicalNode } from "lexical";
+import { hasDescription } from "../utils/hasDescription";
 
 type TaskProps = {
   category: Category;
@@ -55,23 +55,6 @@ function DropArea(
         handleDrop(e, task?.id ?? null, category.id)
       }}
     />
-  );
-}
-
-function hasDescription(description: SerializedEditorState | null) {
-  if (!description?.root?.children) return false;
-
-  // check for lexical empty case involving a single paragraph child which
-  // itself has no children.
-  const children: SerializedLexicalNode[] = description.root.children;
-  return !(
-    children.length === 1 &&
-    children[0].type === "paragraph" &&
-    (
-      "children" in children[0] &&
-      Array.isArray(children[0].children) &&
-      children[0].children.length === 0
-    )
   );
 }
 
@@ -232,10 +215,21 @@ export default function TaskCard(
                 <SquarePen />
               </div>
             </div>
-            <div>
-              {hasDescription(task.description) ?
-                <FileText size={26} strokeWidth={1.5} className="mb-2" /> : null
-              }
+            <div className="flex items-center gap-2">
+              {hasDescription(task.description) && (
+                <FileText size={26} strokeWidth={1.5} className="mb-2" />
+              )}
+
+              {task.assignedToYou && (
+                <div className="flex ites-center gap-2 mb-2">
+                  <UserRound
+                    size={20}
+                    className="text-sky-600"
+                    aria-label="Assigned to you"
+                  />
+                  <span className="text-[#555]">Assigned to you</span>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -269,6 +263,7 @@ export default function TaskCard(
       {(task && isViewOpen) && (
         <ViewTaskDialog
           task={task}
+          boardId={category.boardId}
           onClose={() => {
             setIsViewOpen(false);
           }}

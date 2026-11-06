@@ -2,14 +2,10 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.dto.CreateTaskRequest;
-import infinitecookies.task.manager.models.dto.TaskReorderRequest;
-import infinitecookies.task.manager.models.dto.TaskResponse;
-import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
+import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.models.websock.*;
-import infinitecookies.task.manager.repositories.BoardRepository;
-import infinitecookies.task.manager.repositories.CategoryRepository;
-import infinitecookies.task.manager.repositories.TaskRepository;
+import infinitecookies.task.manager.repositories.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,6 +22,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
     private final BoardRepository boardRepository;
+    private final UserRepository userRepository;
     private final BoardService boardService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -33,11 +30,13 @@ public class TaskService {
     public TaskService(TaskRepository taskRepository,
                        CategoryRepository categoryRepository,
                        BoardRepository boardRepository,
+                       UserRepository userRepository,
                        BoardService boardService,
                        ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
+        this.userRepository = userRepository;
         this.boardService = boardService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
@@ -62,9 +61,10 @@ public class TaskService {
         task.setName(request.name());
         task.setPosition(nextPosition);
         task.setCategory(category);
+        task.setCreatedByUser(userRepository.getReferenceById(userId));
         taskRepository.save(task);
 
-        TaskResponse response = TaskResponse.fromTask(task);
+        TaskResponse response = TaskResponse.fromTask(task, false);
 
         applicationEventPublisher.publishEvent(new TaskCreatedEvent(boardId, response));
 
@@ -74,9 +74,91 @@ public class TaskService {
     public List<TaskResponse> getTasks(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        return taskRepository.findAllByBoardId(boardId)
-            .stream().map(TaskResponse::fromTask).toList();
+        return taskRepository.findTasksByBoardId(userId, boardId).stream()
+            .map(projection -> new TaskResponse(
+                projection.getId(),
+                projection.getCategoryId(),
+                projection.getName(),
+                projection.getDescription(),
+                projection.getCompleted(),
+                projection.getPosition(),
+                projection.getCreatedByUserId(),
+                projection.getCreatedByUsername(),
+                projection.getAssignedToYou()
+            ))
+            .toList();
     }
+
+    public List<TaskAssigneeResponse> getTaskAssignees(Long userId, Long boardId, Long id) {
+        boardService.checkHasAuthorization(userId, boardId);
+
+        return taskRepository.findAllAssigneesByIdAndBoardIdAndBoardId(id, boardId)
+            .stream()
+            .map(user -> new TaskAssigneeResponse(user.getId(), user.getUsername()))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskAssigneeSearchResponse> searchAssignees(Long sessionUserId, Long boardId, Long id,
+                                                            String username) {
+        boardService.checkHasAuthorization(sessionUserId, boardId);
+
+        Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+
+        Set<Long> assignedUsers = task.getAssignees().stream()
+            .map(User::getId)
+            .collect(Collectors.toSet());
+
+        return userRepository.findTop10ByUsernameIgnoreCaseBelongingToBoardId(username, boardId)
+            .stream()
+            .map(user -> new TaskAssigneeSearchResponse(
+                user.getId(),
+                user.getUsername(),
+                assignedUsers.contains(user.getId())
+            ))
+            .toList();
+    }
+
+//    @Transactional
+//    public void assignToTask(Long userId, Long boardId, Long taskId, Long assignedUserId) {
+//        boardService.checkHasAuthorization(userId, boardId);
+//
+//        // Ensure the user being assigned the task is a member of the board.
+//        if (!boardRepository.isUserAllowed(boardId, assignedUserId)) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a member of the board");
+//        }
+//
+//        Task task = taskRepository.findByIdAndCategoryBoardId(taskId, boardId)
+//            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+//
+//        task.getAssignees().add(userRepository.getReferenceById(assignedUserId));
+//
+//        applicationEventPublisher.publishEvent(new TaskAssigneeAddedEvent(
+//            boardId,
+//            task.getCategory().getId(),
+//            taskId,
+//            assignedUserId
+//        ));
+//    }
+//
+//    @Transactional
+//    public void unassignFromTask(Long userId, Long boardId, Long taskId, Long assignedUserId) {
+//        boardService.checkHasAuthorization(userId, boardId);
+//
+//        Task task = taskRepository.findByIdAndCategoryBoardId(taskId, boardId)
+//            .orElseThrow(() ->new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+//
+//        task.getAssignees().removeIf(
+//            assignee -> assignee.getId().equals(assignedUserId));
+//
+//        applicationEventPublisher.publishEvent(new TaskAssigneeRemovedEvent(
+//            boardId,
+//            task.getCategory().getId(),
+//            taskId,
+//            assignedUserId
+//        ));
+//    }
 
     @Transactional
     public void updateTask(Long userId, Long boardId, Long id, TaskUpdateRequest request) {
@@ -94,13 +176,30 @@ public class TaskService {
         if (request.completed() != null) {
             task.setCompleted(request.completed());
         }
+        if (request.assignedUserIds() != null) {
+            Set<Long> requestedIds = new HashSet<>(request.assignedUserIds());
+            List<User> users = userRepository.findAllowedUsersByBoardIdAndUserIds(
+                boardId,
+                requestedIds
+            );
+
+            if (users.size() != requestedIds.size()) {
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "One or more users are not members of this board"
+                );
+            }
+
+            task.setAssignees(new HashSet<>(users));
+        }
 
         applicationEventPublisher.publishEvent(new TaskUpdatedEvent(
             boardId,
             id,
             request.name(),
             request.description(),
-            request.completed()
+            request.completed(),
+            request.assignedUserIds()
         ));
     }
 

@@ -25,6 +25,7 @@ export type TaskUpdatedEventPayload = {
   name?: string;
   description?: SerializedEditorState;
   completed?: boolean;
+  assignedUserIds?: number[];
 };
 
 export type TasksReorderedEventPayload = {
@@ -34,6 +35,18 @@ export type TasksReorderedEventPayload = {
   targetTaskIds: number[];
   movedTaskId?: number;
 };
+
+// export type TaskAssigneeAddedEventPayload = {
+//   categoryId: number;
+//   taskId: number;
+//   assignedUserId: number;
+// };
+
+// export type TaskAssigneeRemovedEventPayload = {
+//   categoryId: number;
+//   taskId: number;
+//   assignedUserId: number;
+// };
 
 export type BackgroundUpdatedEventPayload = {
   backgroundType: BackgroundType;

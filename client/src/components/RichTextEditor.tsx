@@ -78,7 +78,6 @@ function ToolBar() {
           onMouseDown={(e) => e.preventDefault()}
           className="h-8 w-8 text-2xl rounded-md hover:bg-zinc-200"
           onClick={() => {
-            console.log("trying to fire the list command?");
             editor.focus();
             editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
           }}
@@ -92,10 +91,24 @@ function ToolBar() {
 // must bridge the connection and retreive the editor state inside the context of the
 // LexicalExtensionComposer.
 function EditorStateBridge({ editorStateRef }: { editorStateRef: React.RefObject<EditorState | null> }) {
+  const [editor] = useLexicalComposerContext();
   const editorState = useSignalValue(useExtensionDependency(EditorStateExtension).output);
+
+  const isInitialized = useRef(false);
 
   useEffect(() => {
     editorStateRef.current = editorState;
+
+    editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      if (!isInitialized.current) {
+        isInitialized.current = true;
+        return;
+      }
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
+        return;
+      }
+    });
+
   }, [editorState, editorStateRef]);
 
   return null;

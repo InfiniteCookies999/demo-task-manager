@@ -7,9 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class TaskManagerApplication {
 
 	static void main(String[] args) {
-
-
-
 		SpringApplication.run(TaskManagerApplication.class, args);
 	}
 }

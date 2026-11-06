@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -28,5 +30,8 @@ public class User {
     @OneToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.REMOVE }, orphanRemoval = true)
     @JoinColumn(name = "default_board_id", nullable = false)
     private Board ownedBoard;
+
+    @OneToMany(mappedBy = "createdByUser", cascade = { CascadeType.REMOVE }, orphanRemoval = true)
+    private List<Task> createdTasks;
 
 }

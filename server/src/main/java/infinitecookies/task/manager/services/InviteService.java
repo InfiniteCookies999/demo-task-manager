@@ -86,7 +86,8 @@ public class InviteService {
             .map(invite -> invite.getInvitedUser().getId())
             .collect(Collectors.toSet());
 
-        return userRepository.findTop10ByUsernameContainingIgnoreCase(username).stream()
+        return userRepository.findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc(username)
+            .stream()
             .filter(user -> !user.getId().equals(sessionUserId))
             .map(user -> new UserInviteSearchResponse(
                 user.getId(),

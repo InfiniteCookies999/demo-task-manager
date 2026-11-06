@@ -5,6 +5,7 @@ import { type UserInviteSearchResult } from "../types/user";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import { Clock8, UserRoundPlus } from "lucide-react";
+import UserSearch from "./UserSearch";
 
 type SendInvitesDialogProps = {
   boardId: number;
@@ -29,45 +30,6 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
     dialogRef.current?.close();
     onClose();
   }
-
-  useEffect(() => {
-    const username = searchedUsername.trim();
-
-    if (username.length < 2) {
-      setFoundUsers([]);
-      setIsSearching(false);
-      return;
-    }
-
-    // Search with timeout of 300 milliseconds.
-    let cancelled = false;
-    const timeoutId = window.setTimeout(async () => {
-      setIsSearching(true);
-
-      try {
-        const response = await apiFetch(`/api/boards/${boardId}/invites/user-search?username=${encodeURIComponent(username)}`);
-
-        const results: UserInviteSearchResult[] = await response.json();
-
-        if (!cancelled) {
-          setFoundUsers(results);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          handleError(err);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSearching(false);
-        }
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    }
-  }, [searchedUsername]);
 
   async function sendInvite(inviteUserId: number) {
     try {
@@ -103,24 +65,18 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
       <div className="p-6">
         <DialogTitleAndClose title={<span>Send Invites</span>} onClose={close} />
 
-        <div className="mb-3">
-          <label
-            htmlFor="user-invite-search"
-            className="mb-2 block text-xl font-medium text-zinc-700">
-            Find Users by Username
-          </label>
-          <input
-            id="user-invite-search"
-            value={searchedUsername}
-            onChange={(e) => setSearchedUsername(e.target.value)}
-            maxLength={20}
-            className="
-              w-full rounded-lg border border-zinc-300 text-lg
-              px-3 py-2 outline-none
-              focus:border-blue-300
-            "
-          />
-        </div>
+        <UserSearch<UserInviteSearchResult>
+          inputId="user-invite-search"
+          setFoundUsers={setFoundUsers}
+          setIsSearching={setIsSearching}
+          searchedUsername={searchedUsername}
+          setSearchedUsername={setSearchedUsername}
+          headerText="Find Users by Username"
+          searchEndpoint={
+            (username) =>
+              `/api/boards/${boardId}/invites/user-search?username=${encodeURIComponent(username)}`
+          }
+        />
 
         <div className="overflow-hidden">
           {searchedUsername.trim().length >= 2 ? (

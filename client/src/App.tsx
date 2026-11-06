@@ -6,6 +6,8 @@ import type { User } from "./types/user";
 import Board from "./components/Board";
 import BoardRoute from "./components/BoardRoute";
 import { Route, Routes } from "react-router-dom";
+import { UserContext } from "./contexts/UserContext";
+import ErrorAlert from "./components/ErrorAlert";
 
 function App() {
 
@@ -38,20 +40,27 @@ function App() {
 
   return (
     <AppContext.Provider value={{handleError}}>
-      {user && (
-        <Routes>
-          <Route
-            path="*"
-            element={
-              <Board user={user} setUser={setUser} boardId={user.ownedBoardId} error={error} />
-            }
-          />
-          <Route
-            path="/boards/:boardId"
-            element={<BoardRoute user={user} setUser={setUser} error={error} />}
-          />
-        </Routes>
-      )}
+      <>
+        {user && (
+          <UserContext.Provider value={{user, setUser}}>
+            <Routes>
+              <Route
+                path="*"
+                element={
+                  <Board boardId={user.ownedBoardId} error={error} />
+                }
+              />
+              <Route
+                path="/boards/:boardId"
+                element={<BoardRoute error={error} />}
+              />
+            </Routes>
+          </UserContext.Provider>
+        )}
+        <div className="fixed bottom-6 left-6 z-50">
+          <ErrorAlert error={error}/>
+        </div>
+      </>
     </AppContext.Provider>
   );
 }

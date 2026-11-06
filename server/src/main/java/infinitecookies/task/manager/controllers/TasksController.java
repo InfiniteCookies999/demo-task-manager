@@ -1,9 +1,13 @@
 package infinitecookies.task.manager.controllers;
 
+import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.session.SessionUser;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +32,47 @@ public class TasksController {
     public List<TaskResponse> getTasks(@PathVariable Long boardId, SessionUser sessionUser) {
         return service.getTasks(sessionUser.id(), boardId);
     }
+
+    @GetMapping("/{id}/assignees")
+    public List<TaskAssigneeResponse> getTaskAssignees(@PathVariable Long boardId, @PathVariable Long id,
+                                                       SessionUser sessionUser) {
+        return service.getTaskAssignees(sessionUser.id(), boardId, id);
+    }
+
+    @GetMapping("/{id}/search-assignees")
+    public List<TaskAssigneeSearchResponse> searchAssigneesForTask(
+        @PathVariable Long boardId,
+        @PathVariable Long id,
+        SessionUser sessionUser,
+
+        @RequestParam
+        @Valid
+        @NotBlank
+        @Size(min = 2, max = User.MAX_USERNAME_LENGTH)
+        String username
+    ) {
+        return service.searchAssignees(sessionUser.id(), boardId, id, username);
+    }
+
+//    @PutMapping("/{taskId}/assignees/{assignedUserId}")
+//    public void assignToTask(
+//        @PathVariable Long boardId,
+//        @PathVariable Long taskId,
+//        @PathVariable Long assignedUserId,
+//        SessionUser sessionUser
+//    ) {
+//        service.assignToTask(sessionUser.id(), boardId, taskId, assignedUserId);
+//    }
+//
+//    @DeleteMapping("/{taskId}/assignees/{assignedUserId}")
+//    public void unassignFromTask(
+//        @PathVariable Long boardId,
+//        @PathVariable Long taskId,
+//        @PathVariable Long assignedUserId,
+//        SessionUser sessionUser
+//    ) {
+//        service.unassignFromTask(sessionUser.id(), boardId, taskId, assignedUserId);
+//    }
 
     @PatchMapping("/{id}")
     public void updateTask(@PathVariable Long boardId, @PathVariable Long id,

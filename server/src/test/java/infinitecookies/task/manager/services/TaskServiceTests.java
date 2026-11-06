@@ -3,14 +3,13 @@ package infinitecookies.task.manager.services;
 import infinitecookies.task.manager.models.Board;
 import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.dto.CreateTaskRequest;
-import infinitecookies.task.manager.models.dto.TaskReorderRequest;
-import infinitecookies.task.manager.models.dto.TaskResponse;
-import infinitecookies.task.manager.models.dto.TaskUpdateRequest;
+import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.models.websock.*;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
+import infinitecookies.task.manager.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,6 +39,9 @@ public class TaskServiceTests {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private BoardRepository boardRepository;
@@ -60,6 +63,7 @@ public class TaskServiceTests {
             taskRepository,
             categoryRepository,
             boardRepository,
+            userRepository,
             boardService,
             applicationEventPublisher
         );
@@ -99,17 +103,22 @@ public class TaskServiceTests {
     @Test
     void createTaskSuccess() {
 
-        long categoryId = 4L;
+        Long userId = 1L;
+        Long categoryId = 4L;
+
+        User user = new User();
+        user.setId(userId);
 
         Category category = new Category();
         category.setId(categoryId);
 
-        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+        when(boardRepository.isUserAllowed(1L, userId)).thenReturn(true);
         when(taskRepository.countByCategoryId(categoryId)).thenReturn(3L);
         when(categoryRepository.findByIdAndBoardId(categoryId, 1L)).thenReturn(Optional.of(category));
+        when(userRepository.getReferenceById(userId)).thenReturn(user);
 
         CreateTaskRequest request = new CreateTaskRequest(categoryId, "New Task");
-        TaskResponse response = taskService.createTask(1L, 1L, request);
+        TaskResponse response = taskService.createTask(userId, 1L, request);
 
         assertNotNull(response);
 
@@ -120,6 +129,7 @@ public class TaskServiceTests {
         assertEquals("New Task", savedTask.getName());
         assertEquals(3, savedTask.getPosition());
         assertEquals(categoryId, savedTask.getCategory().getId());
+        assertEquals(user.getId(), savedTask.getCreatedByUser().getId());
 
         verify(applicationEventPublisher).publishEvent(any(TaskCreatedEvent.class));
     }
@@ -146,6 +156,35 @@ public class TaskServiceTests {
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void updateTaskAssigneeIdsNotMemberOfBoard() {
+
+        Task task = new Task();
+
+        List<Long> assignedUserIds = List.of(4L, 2L, 8L);
+        Set<Long> assignedUserIdSet = new HashSet<>(assignedUserIds);
+
+        User user1 = new User();
+        user1.setId(4L);
+
+        User user3 = new User();
+        user3.setId(8L);
+
+        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
+        when(userRepository.findAllowedUsersByBoardIdAndUserIds(1L, assignedUserIdSet))
+            .thenReturn(List.of(user1, user3));
+
+        TaskUpdateRequest request = new TaskUpdateRequest(
+            null, null, null, assignedUserIds
+        );
+        ResponseStatusException e =
+            assertThrows(ResponseStatusException.class, () -> taskService.updateTask(1L, 1L, 1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -192,19 +231,40 @@ public class TaskServiceTests {
 
         Task task = new Task();
 
+        List<Long> assignedUserIds = List.of(4L, 2L, 8L);
+        Set<Long> assignedUserIdSet = new HashSet<>(assignedUserIds);
+
+        User user1 = new User();
+        user1.setId(4L);
+
+        User user2 = new User();
+        user2.setId(2L);
+
+        User user3 = new User();
+        user3.setId(8L);
+
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
+        when(userRepository.findAllowedUsersByBoardIdAndUserIds(1L, assignedUserIdSet))
+            .thenReturn(List.of(user1, user2, user3));
 
         TaskUpdateRequest request = new TaskUpdateRequest(
             "New name",
             description,
-            true
+            true,
+            assignedUserIds
         );
         taskService.updateTask(1L, 1L, 1L, request);
 
         assertEquals("New name", task.getName());
         assertEquals(description, task.getDescription());
         assertTrue(task.isCompleted());
+        assertEquals(
+            assignedUserIdSet,
+            task.getAssignees().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet())
+        );
 
         verify(applicationEventPublisher).publishEvent(any(TaskUpdatedEvent.class));
     }
@@ -687,4 +747,198 @@ public class TaskServiceTests {
 
         verify(applicationEventPublisher).publishEvent(any(TaskDeletedEvent.class));
     }
+
+    @Test
+    void searchAssigneesLacksBoardAuthorization() {
+
+        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
+
+        ResponseStatusException e =
+            assertThrows(ResponseStatusException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+    }
+
+    @Test
+    void searchAssigneesTaskNotFound() {
+
+        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException e =
+            assertThrows(ResponseStatusException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+        verify(userRepository, never()).findTop10ByUsernameIgnoreCaseBelongingToBoardId(any(), any());
+    }
+
+    @Test
+    void searchAssigneesTaskSuccessful() {
+
+        User assignedUser = new User();
+        assignedUser.setId(2L);
+        assignedUser.setUsername("assignedUser");
+
+        User unassignedUser = new User();
+        unassignedUser.setId(3L);
+        unassignedUser.setUsername("unassignedUser");
+
+        Task task = new Task();
+        task.setAssignees(Set.of(assignedUser));
+
+        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
+        when(userRepository.findTop10ByUsernameIgnoreCaseBelongingToBoardId(
+            "searchUsername", 1L
+        )).thenReturn(List.of(assignedUser, unassignedUser));
+
+        List<TaskAssigneeSearchResponse> response = taskService.searchAssignees(1L, 1L, 1L, "searchUsername");
+
+        assertEquals(2, response.size());
+
+        assertEquals(2L, response.getFirst().id());
+        assertEquals("assignedUser", response.get(0).username());
+        assertTrue(response.get(0).alreadyAssigned());
+
+        assertEquals(3L, response.get(1).id());
+        assertEquals("unassignedUser", response.get(1).username());
+        assertFalse(response.get(1).alreadyAssigned());
+
+        verify(boardRepository).isUserAllowed(1L, 1L);
+        verify(taskRepository).findByIdAndCategoryBoardId(1L, 1L);
+        verify(userRepository).findTop10ByUsernameIgnoreCaseBelongingToBoardId(
+            "searchUsername", 1L
+        );
+    }
+
+//    @Test
+//    void assignToTaskLacksBoardAuthorization() {
+//
+//        Long assignedUserId = 3L;
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
+//
+//        ResponseStatusException e =
+//            assertThrows(ResponseStatusException.class, () -> taskService.assignToTask(1L, 1L, 1L, assignedUserId));
+//
+//        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+//        verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+//        verify(userRepository, never()).getReferenceById(any());
+//        verify(applicationEventPublisher, never()).publishEvent(any(TaskAssigneeAddedEvent.class));
+//    }
+//
+//    @Test
+//    void assignToTaskAssignedUserLacksBoardAuthorization() {
+//
+//        Long assignedUserId = 3L;
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+//        when(boardRepository.isUserAllowed(1L, assignedUserId)).thenReturn(false);
+//
+//        ResponseStatusException e =
+//            assertThrows(ResponseStatusException.class, () -> taskService.assignToTask(1L, 1L, 1L, assignedUserId));
+//
+//        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
+//        verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+//        verify(userRepository, never()).getReferenceById(any());
+//        verify(applicationEventPublisher, never()).publishEvent(any(TaskAssigneeAddedEvent.class));
+//    }
+//
+//    @Test
+//    void assignToTaskAssignedUserTaskNotFound() {
+//
+//        Long assignedUserId = 3L;
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+//        when(boardRepository.isUserAllowed(1L, assignedUserId)).thenReturn(true);
+//        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.empty());
+//
+//        ResponseStatusException e =
+//            assertThrows(ResponseStatusException.class, () -> taskService.assignToTask(1L, 1L, 1L, assignedUserId));
+//
+//        assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+//        verify(userRepository, never()).getReferenceById(any());
+//        verify(applicationEventPublisher, never()).publishEvent(any(TaskAssigneeAddedEvent.class));
+//    }
+//
+//    @Test
+//    void assignToTaskSuccessful() {
+//
+//        Long assignedUserId = 3L;
+//
+//        Category category = new Category();
+//        category.setId(1L);
+//
+//        User assignedUser = new User();
+//        assignedUser.setId(assignedUserId);
+//
+//        Task task = new Task();
+//        task.setCategory(category);
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+//        when(boardRepository.isUserAllowed(1L, assignedUserId)).thenReturn(true);
+//        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
+//        when(userRepository.getReferenceById(assignedUserId)).thenReturn(assignedUser);
+//
+//        taskService.assignToTask(1L, 1L, 1L, assignedUserId);
+//
+//        assertEquals(1, task.getAssignees().size());
+//        assertTrue(task.getAssignees().contains(assignedUser));
+//        verify(applicationEventPublisher).publishEvent(any(TaskAssigneeAddedEvent.class));
+//    }
+//
+//    @Test
+//    void unassignFromTaskLacksBoardAuthorization() {
+//
+//        Long assignedUserId = 3L;
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
+//
+//        ResponseStatusException e =
+//            assertThrows(ResponseStatusException.class, () -> taskService.unassignFromTask(1L, 1L, 1L, assignedUserId));
+//
+//        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+//        verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+//        verify(applicationEventPublisher, never()).publishEvent(any(TaskAssigneeRemovedEvent.class));
+//    }
+//
+//    @Test
+//    void unassignFromTaskTaskNotFound() {
+//
+//        Long assignedUserId = 3L;
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+//        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.empty());
+//
+//        ResponseStatusException e =
+//            assertThrows(ResponseStatusException.class, () -> taskService.unassignFromTask(1L, 1L, 1L, assignedUserId));
+//
+//        assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+//        verify(applicationEventPublisher, never()).publishEvent(any(TaskAssigneeRemovedEvent.class));
+//    }
+//
+//    @Test
+//    void unassignFromTaskSuccessful() {
+//
+//        Long assignedUserId = 3L;
+//
+//        User assignedUser = new User();
+//        assignedUser.setId(assignedUserId);
+//
+//        Category category = new Category();
+//        category.setId(1L);
+//
+//        Task task = new Task();
+//        task.setAssignees(new HashSet<>(Set.of(assignedUser)));
+//        task.setCategory(category);
+//
+//        when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
+//        when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
+//
+//        taskService.unassignFromTask(1L, 1L, 1L, assignedUserId);
+//
+//        assertTrue(task.getAssignees().isEmpty());
+//        verify(applicationEventPublisher).publishEvent(any(TaskAssigneeRemovedEvent.class));
+//    }
 }

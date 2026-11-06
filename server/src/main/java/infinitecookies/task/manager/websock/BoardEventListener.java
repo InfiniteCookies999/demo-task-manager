@@ -67,6 +67,17 @@ public class BoardEventListener {
         send(BoardEventType.BACKGROUND_UPDATED, event.boardId(), event);
     }
 
+
+//    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+//    public void onTaskAssigneeAdded(TaskAssigneeAddedEvent event) {
+//        send(BoardEventType.TASK_ASSIGNEE_ADDED, event.boardId(), event);
+//    }
+//
+//    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+//    public void onTaskAssigneeAdded(TaskAssigneeRemovedEvent event) {
+//        send(BoardEventType.TASK_ASSIGNEE_REMOVED, event.boardId(), event);
+//    }
+
     private void send(BoardEventType type, Long boardId, Object payload) {
         messagingTemplate.convertAndSend("/topic/board/" + boardId, new BoardWebSocketEvent(type, payload));
     }

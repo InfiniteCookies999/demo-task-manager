@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Category } from "../types/category";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
-import type { User } from "../types/user";
 import ErrorAlert from "./ErrorAlert";
 import type { Task, TaskDropTarget } from "../types/task";
 import UserNavButton from "./UserNavButton";
@@ -22,13 +21,11 @@ import type { Board } from "../types/board";
 import ChangeBackgroundDialog from "./ChangeBackgroundDialog";
 
 type BoardProps = {
-  user: User;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   boardId: number;
   error: string;
 };
 
-export default function Board({ user, setUser, boardId, error }: BoardProps) {
+export default function Board({ boardId, error }: BoardProps) {
 
   const { handleError } = useAppContext();
 
@@ -172,8 +169,11 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
 
   const MAX_CATEGORIES = 30;
 
+  if (!board) {
+    return null;
+  }
+
   return (
-    board &&
     <>
       <div
         className="flex flex-col min-h-screen"
@@ -215,7 +215,6 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
               </div>
 
               <UserNavButton
-                user={user}
                 invites={invites}
                 setInvites={setInvites}
                 setViewInvitesOpen={setViewInvitesOpen}
@@ -251,7 +250,6 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
         ))}
         </div>
 
-        <ErrorAlert error={error}/>
       </div>
       {sendInvitesOpen &&
         <SendInvitesDialog boardId={boardId} onClose={() => setSendInvitesOpen(false)} />
@@ -265,14 +263,12 @@ export default function Board({ user, setUser, boardId, error }: BoardProps) {
       }
       {changeUsernameOpen &&
         <ChangeUsernameDialog
-          user={user}
-          setUser={setUser}
           setBoard={setBoard}
           onClose={() => setChangeUsernameOpen(false)}
         />
       }
       {viewBoardsOpen &&
-        <ViewBoardsDialog user={user} onClose={() => setViewBoardsOpen(false)} />
+        <ViewBoardsDialog onClose={() => setViewBoardsOpen(false)} />
       }
       {changeBackgroundOpen &&
         <ChangeBackgroundDialog
