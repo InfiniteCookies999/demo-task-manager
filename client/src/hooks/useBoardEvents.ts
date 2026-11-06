@@ -190,20 +190,6 @@ export function useBoardEvents(
         });
         break;
       }
-      // case "TASK_ASSIGNEE_ADDED": {
-      //   const { categoryId, taskId, assignedUserId }: TaskAssigneeAddedEventPayload = event.payload;
-      //   if (assignedUserId === user.id) {
-      //     setTasksByCategory((current) => toggleTaskAssignedToYou(true, taskId, categoryId, current));
-      //   }
-      //   break;
-      // }
-      // case "TASK_ASSIGNEE_REMOVED": {
-      //   const { categoryId, taskId, assignedUserId }: TaskAssigneeAddedEventPayload = event.payload;
-      //   if (assignedUserId === user.id) {
-      //     setTasksByCategory((current) => toggleTaskAssignedToYou(false, taskId, categoryId, current));
-      //   }
-      //   break;
-      // }
     }
   }, [addCategory, addTask, setCategories, setTasksByCategory]);
 

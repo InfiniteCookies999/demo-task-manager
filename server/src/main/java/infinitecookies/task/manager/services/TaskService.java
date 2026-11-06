@@ -120,46 +120,6 @@ public class TaskService {
             .toList();
     }
 
-//    @Transactional
-//    public void assignToTask(Long userId, Long boardId, Long taskId, Long assignedUserId) {
-//        boardService.checkHasAuthorization(userId, boardId);
-//
-//        // Ensure the user being assigned the task is a member of the board.
-//        if (!boardRepository.isUserAllowed(boardId, assignedUserId)) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a member of the board");
-//        }
-//
-//        Task task = taskRepository.findByIdAndCategoryBoardId(taskId, boardId)
-//            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
-//
-//        task.getAssignees().add(userRepository.getReferenceById(assignedUserId));
-//
-//        applicationEventPublisher.publishEvent(new TaskAssigneeAddedEvent(
-//            boardId,
-//            task.getCategory().getId(),
-//            taskId,
-//            assignedUserId
-//        ));
-//    }
-//
-//    @Transactional
-//    public void unassignFromTask(Long userId, Long boardId, Long taskId, Long assignedUserId) {
-//        boardService.checkHasAuthorization(userId, boardId);
-//
-//        Task task = taskRepository.findByIdAndCategoryBoardId(taskId, boardId)
-//            .orElseThrow(() ->new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
-//
-//        task.getAssignees().removeIf(
-//            assignee -> assignee.getId().equals(assignedUserId));
-//
-//        applicationEventPublisher.publishEvent(new TaskAssigneeRemovedEvent(
-//            boardId,
-//            task.getCategory().getId(),
-//            taskId,
-//            assignedUserId
-//        ));
-//    }
-
     @Transactional
     public void updateTask(Long userId, Long boardId, Long id, TaskUpdateRequest request) {
         boardService.checkHasAuthorization(userId, boardId);

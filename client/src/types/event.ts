@@ -36,18 +36,6 @@ export type TasksReorderedEventPayload = {
   movedTaskId?: number;
 };
 
-// export type TaskAssigneeAddedEventPayload = {
-//   categoryId: number;
-//   taskId: number;
-//   assignedUserId: number;
-// };
-
-// export type TaskAssigneeRemovedEventPayload = {
-//   categoryId: number;
-//   taskId: number;
-//   assignedUserId: number;
-// };
-
 export type BackgroundUpdatedEventPayload = {
   backgroundType: BackgroundType;
   backgroundSolidColor: string;

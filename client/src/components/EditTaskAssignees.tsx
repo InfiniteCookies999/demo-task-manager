@@ -53,22 +53,12 @@ export default function EditTaskAssignees(
     fetchAssignees();
   }, [task.id, boardId, setLoading, setAssignees]);
 
-  // async function changeAssignmentStatus(userId: number, assign: boolean) {
-  //   try {
-  //     await apiFetch(`/api/boards/${boardId}/tasks/${task.id}/assignees/${userId}`, {
-  //       method: assign ? "PUT" : "DELETE"
-  //     });
-  //   } catch (err) {
-  //     handleError(err);
-  //   }
-  // }
 
   async function assignToTask(userId: number, username: string) {
     setAssignees((current) => [...current, { id: userId, username, assigned: true }]);
     setSearchedAssignees((current) => current.map((user) => ({
       ...user, alreadyAssigned: user.id === userId ? true : user.alreadyAssigned
     })));
-    // changeAssignmentStatus(userId, true);
   }
 
   async function toggleAssignment(userId: number, assigned: boolean) {
@@ -78,7 +68,6 @@ export default function EditTaskAssignees(
     setSearchedAssignees((current) => current.map((user) => ({
       ...user, alreadyAssigned: user.id === userId ? assigned : user.alreadyAssigned
     })));
-    // changeAssignmentStatus(userId, assigned);
   }
 
   if (loading) {

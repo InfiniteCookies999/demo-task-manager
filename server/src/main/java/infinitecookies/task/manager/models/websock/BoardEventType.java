@@ -12,7 +12,4 @@ public enum BoardEventType {
     TASK_DELETED,
 
     BACKGROUND_UPDATED,
-
-//    TASK_ASSIGNEE_ADDED,
-//    TASK_ASSIGNEE_REMOVED
 }
