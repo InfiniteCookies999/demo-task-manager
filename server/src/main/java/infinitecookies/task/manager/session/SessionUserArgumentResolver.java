@@ -2,6 +2,7 @@ package infinitecookies.task.manager.session;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,7 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
     }
 
     @Override
-    public @Nullable Object resolveArgument(MethodParameter parameter,
+    public @Nullable Object resolveArgument(@NonNull MethodParameter parameter,
                                             @Nullable ModelAndViewContainer mavContainer,
                                             NativeWebRequest webRequest,
                                             @Nullable WebDataBinderFactory binderFactory) {

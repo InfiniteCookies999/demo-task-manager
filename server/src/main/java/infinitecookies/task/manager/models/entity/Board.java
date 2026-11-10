@@ -1,5 +1,6 @@
-package infinitecookies.task.manager.models;
+package infinitecookies.task.manager.models.entity;
 
+import infinitecookies.task.manager.models.BackgroundType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

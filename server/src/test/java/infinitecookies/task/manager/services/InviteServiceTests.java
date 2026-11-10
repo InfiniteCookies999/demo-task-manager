@@ -1,10 +1,10 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.Invite;
-import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.SendInviteRequest;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.Invite;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 

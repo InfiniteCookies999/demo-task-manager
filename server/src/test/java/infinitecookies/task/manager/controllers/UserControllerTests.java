@@ -1,7 +1,5 @@
 package infinitecookies.task.manager.controllers;
 
-import infinitecookies.task.manager.models.User;
-import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.services.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

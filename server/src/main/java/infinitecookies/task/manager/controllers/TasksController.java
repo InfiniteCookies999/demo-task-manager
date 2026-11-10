@@ -1,12 +1,11 @@
 package infinitecookies.task.manager.controllers;
 
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.services.TaskService;
 import infinitecookies.task.manager.session.SessionUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 

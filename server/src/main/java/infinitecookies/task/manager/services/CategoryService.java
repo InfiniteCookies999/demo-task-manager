@@ -1,7 +1,7 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.Category;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;

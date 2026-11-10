@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.repositories;
 
-import infinitecookies.task.manager.models.Board;
+import infinitecookies.task.manager.models.entity.Board;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

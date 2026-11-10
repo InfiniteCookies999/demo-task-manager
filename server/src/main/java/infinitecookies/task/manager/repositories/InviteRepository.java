@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.repositories;
 
-import infinitecookies.task.manager.models.Invite;
+import infinitecookies.task.manager.models.entity.Invite;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,8 +1,8 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Category;
-import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Category;
+import infinitecookies.task.manager.models.entity.Task;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.models.websock.*;
 import infinitecookies.task.manager.repositories.*;
@@ -10,7 +10,6 @@ import infinitecookies.task.manager.utils.UserSearchParser;
 import infinitecookies.task.manager.utils.UserSearchParts;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

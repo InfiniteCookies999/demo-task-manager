@@ -1,7 +1,7 @@
-package infinitecookies.task.manager.models;
+package infinitecookies.task.manager.models.entity;
 
+import infinitecookies.task.manager.models.CategoryColor;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -5,7 +5,6 @@ import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
 import infinitecookies.task.manager.services.CategoryService;
 import infinitecookies.task.manager.session.SessionUser;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,7 +1,7 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.ChangeUsernameRequest;
 import infinitecookies.task.manager.models.dto.UserAccountResponse;
 import infinitecookies.task.manager.repositories.UserRepository;

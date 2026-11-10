@@ -1,6 +1,7 @@
 package infinitecookies.task.manager.websock;
 
 import infinitecookies.task.manager.services.BoardService;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -29,7 +30,7 @@ public class BoardSubscriptionInterceptor implements ChannelInterceptor {
     }
 
     @Override
-    public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public @Nullable Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
 
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
         if (accessor == null) {

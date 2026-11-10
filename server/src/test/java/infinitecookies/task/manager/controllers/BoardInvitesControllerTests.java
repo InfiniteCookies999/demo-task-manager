@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.controllers;
 
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.services.InviteService;
 import org.junit.jupiter.api.Test;

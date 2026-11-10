@@ -1,13 +1,14 @@
 package infinitecookies.task.manager.session;
 
-import infinitecookies.task.manager.models.Invite;
-import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Invite;
+import infinitecookies.task.manager.models.entity.Task;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
 import jakarta.transaction.Transactional;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -34,7 +35,7 @@ public class DemoAccountCleanup implements ApplicationRunner {
 
     @Override
     @Transactional
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
 
         // Cascade:
         // User -> owned board -> categories -> tasks

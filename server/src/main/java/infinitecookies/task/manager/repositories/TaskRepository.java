@@ -1,7 +1,7 @@
 package infinitecookies.task.manager.repositories;
 
-import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Task;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.repositories.projections.TaskProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

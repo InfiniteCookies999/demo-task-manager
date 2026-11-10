@@ -1,10 +1,10 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.Category;
-import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.*;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.Category;
+import infinitecookies.task.manager.models.entity.Task;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.websock.TaskCreatedEvent;
 import infinitecookies.task.manager.models.websock.TaskDeletedEvent;
 import infinitecookies.task.manager.models.websock.TaskUpdatedEvent;

@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.models.dto;
 
-import infinitecookies.task.manager.models.Category;
+import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.CategoryColor;
 
 public record CategoryResponse(Long id, Long boardId, String name, CategoryColor color, int position) {

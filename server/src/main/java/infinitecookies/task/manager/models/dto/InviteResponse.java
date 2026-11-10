@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.models.dto;
 
-import infinitecookies.task.manager.models.Invite;
+import infinitecookies.task.manager.models.entity.Invite;
 
 public record InviteResponse(
     Long id,

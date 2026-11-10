@@ -1,4 +1,4 @@
-package infinitecookies.task.manager.models;
+package infinitecookies.task.manager.models.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -7,9 +7,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import tools.jackson.databind.JsonNode;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity

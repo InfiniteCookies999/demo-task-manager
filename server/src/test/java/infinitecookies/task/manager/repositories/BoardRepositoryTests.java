@@ -1,7 +1,7 @@
 package infinitecookies.task.manager.repositories;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;

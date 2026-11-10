@@ -1,9 +1,7 @@
 package infinitecookies.task.manager.models.dto;
 
-import infinitecookies.task.manager.models.Task;
+import infinitecookies.task.manager.models.entity.Task;
 import tools.jackson.databind.JsonNode;
-
-import java.util.List;
 
 public record TaskResponse(
     Long id,

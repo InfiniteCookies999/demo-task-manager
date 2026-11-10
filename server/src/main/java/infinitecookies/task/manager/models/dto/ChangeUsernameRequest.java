@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.models.dto;
 
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.User;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

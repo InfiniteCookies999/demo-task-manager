@@ -1,7 +1,7 @@
 package infinitecookies.task.manager.models.dto;
 
 import infinitecookies.task.manager.models.BackgroundType;
-import infinitecookies.task.manager.models.Board;
+import infinitecookies.task.manager.models.entity.Board;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 

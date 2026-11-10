@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.models.dto;
 
-import infinitecookies.task.manager.models.Category;
+import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.CategoryColor;
 import jakarta.validation.constraints.Size;
 

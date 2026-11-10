@@ -1,4 +1,4 @@
-package infinitecookies.task.manager.models;
+package infinitecookies.task.manager.models.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

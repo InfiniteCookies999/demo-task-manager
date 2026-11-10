@@ -1,6 +1,6 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
+import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.dto.BoardResponse;
 import infinitecookies.task.manager.models.dto.BoardBackgroundUpdateRequest;
 import infinitecookies.task.manager.models.websock.BackgroundUpdatedEvent;

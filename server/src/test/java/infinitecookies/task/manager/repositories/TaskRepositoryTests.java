@@ -1,16 +1,15 @@
 package infinitecookies.task.manager.repositories;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.Category;
-import infinitecookies.task.manager.models.Task;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.Category;
+import infinitecookies.task.manager.models.entity.Task;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.repositories.projections.TaskProjection;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;

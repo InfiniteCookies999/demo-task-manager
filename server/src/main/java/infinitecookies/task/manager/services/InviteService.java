@@ -1,8 +1,8 @@
 package infinitecookies.task.manager.services;
 
-import infinitecookies.task.manager.models.Board;
-import infinitecookies.task.manager.models.Invite;
-import infinitecookies.task.manager.models.User;
+import infinitecookies.task.manager.models.entity.Board;
+import infinitecookies.task.manager.models.entity.Invite;
+import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.InviteResponse;
 import infinitecookies.task.manager.models.dto.SendInviteRequest;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
