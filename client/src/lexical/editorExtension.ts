@@ -1,6 +1,10 @@
-import { defineExtension, EditorStateExtension } from "@lexical/extension";
+import { configExtension, defineExtension, EditorStateExtension } from "@lexical/extension";
 import { RichTextExtension } from "@lexical/rich-text";
 import { ListExtension } from "@lexical/list";
+import { OverflowExtension } from "@lexical/overflow";
+import { MaxLengthExtension } from "./MaxLengthExtension";
+
+export const MAX_LENGTH = 250;
 
 export const editorExtension = defineExtension({
   name: "MyEditor",
@@ -8,7 +12,12 @@ export const editorExtension = defineExtension({
   dependencies: [
     RichTextExtension,
     EditorStateExtension,
-    ListExtension
+    ListExtension,
+    OverflowExtension,
+    configExtension(MaxLengthExtension, {
+      disabled: false,
+      maxLength: MAX_LENGTH
+    })
   ],
   theme: {
     text: {

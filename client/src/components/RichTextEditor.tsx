@@ -4,6 +4,7 @@ import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionCompose
 import { useExtensionDependency } from "@lexical/react/useExtensionComponent";
 import { useSignalValue } from "@lexical/react/useExtensionSignalValue";
 import { EditorStateExtension } from '@lexical/extension';
+import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 
 import {
   FORMAT_TEXT_COMMAND,
@@ -19,7 +20,7 @@ import {
   INSERT_UNORDERED_LIST_COMMAND
 } from "@lexical/list";
 
-import { editorExtension } from "../lexical/editorExtension";
+import { editorExtension, MAX_LENGTH } from "../lexical/editorExtension";
 
 
 function ToolBar() {
@@ -177,7 +178,6 @@ export default function RichTexEditor(
     });
   }, [getJSON]);
 
-  // TODO (maddie): resize-none not working
   const placeholder = "Describe your task...";
   return (
     <>
@@ -198,6 +198,17 @@ export default function RichTexEditor(
         `}
       </style>
       <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
+
+        <CharacterLimitPlugin
+          maxLength={MAX_LENGTH}
+          charset="UTF-8"
+          renderer={({ remainingCharacters }) => (
+            <span className="text-sm text-zinc-500">
+              {MAX_LENGTH - remainingCharacters}/{MAX_LENGTH} characters
+            </span>
+          )}
+        />
+
         {json ? <LoadEditorState json={json} /> : null}
         {getJSON ? <EditorStateBridge editorStateRef={editorStateRef} /> : null}
 
