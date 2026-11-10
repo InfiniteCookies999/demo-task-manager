@@ -5,7 +5,10 @@ import infinitecookies.task.manager.models.Category;
 import infinitecookies.task.manager.models.Task;
 import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.*;
-import infinitecookies.task.manager.models.websock.*;
+import infinitecookies.task.manager.models.websock.TaskCreatedEvent;
+import infinitecookies.task.manager.models.websock.TaskDeletedEvent;
+import infinitecookies.task.manager.models.websock.TaskUpdatedEvent;
+import infinitecookies.task.manager.models.websock.TasksReorderedEvent;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import infinitecookies.task.manager.repositories.TaskRepository;
@@ -17,13 +20,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -770,7 +776,7 @@ public class TaskServiceTests {
             assertThrows(ResponseStatusException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
-        verify(userRepository, never()).findTop10ByUsernameIgnoreCaseBelongingToBoardId(any(), any());
+        verify(userRepository, never()).searchAssignees(any(), any(), any(), any());
     }
 
     @Test
@@ -789,8 +795,8 @@ public class TaskServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.of(task));
-        when(userRepository.findTop10ByUsernameIgnoreCaseBelongingToBoardId(
-            "searchUsername", 1L
+        when(userRepository.searchAssignees(
+            "searchUsername", null, 1L, PageRequest.of(0, 10)
         )).thenReturn(List.of(assignedUser, unassignedUser));
 
         List<TaskAssigneeSearchResponse> response = taskService.searchAssignees(1L, 1L, 1L, "searchUsername");
@@ -807,8 +813,8 @@ public class TaskServiceTests {
 
         verify(boardRepository).isUserAllowed(1L, 1L);
         verify(taskRepository).findByIdAndCategoryBoardId(1L, 1L);
-        verify(userRepository).findTop10ByUsernameIgnoreCaseBelongingToBoardId(
-            "searchUsername", 1L
+        verify(userRepository).searchAssignees(
+            "searchUsername", null, 1L, PageRequest.of(0, 10)
         );
     }
 }

@@ -135,54 +135,57 @@ export default function EditTaskAssignees(
           headerText="Search board members by username"
           searchEndpoint={
             (username) =>
-              `/api/boards/${boardId}/tasks/${task.id}/search-assignees?username=${encodeURIComponent(username)}`
+              `/api/boards/${boardId}/tasks/${task.id}/search-assignees?search=${encodeURIComponent(username)}`
           }
         />
 
         <div className="mb-4">
           {searchedAssigneeUsername.trim().length >= 2 ? (
-            isAssigneeSearching ? (
-              <p className="px-4 py-3 text-sm text-zinc-500">
-                Searching users...
-              </p>
-            ) : searchedAssignees.length > 0 ? (
-              <div className="mt-2">
-                {searchedAssignees.map((user) => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    disabled={user.alreadyAssigned}
-                    onClick={() => assignToTask(user.id, user.username)}
-                    className={`
-                      flex w-full items-center justify-between
-                      mt-2 rounded-lg border border-zinc-200
-                      px-4 py-2 text-left
-                      ${
-                        user.alreadyAssigned
-                          ? "bg-zinc-50 text-zinc-400"
-                          : "bg-white hover:bg-sky-100 cursor-pointer"
-                      }
-                    `}
-                  >
-                    <span className="text-lg font-medium">
-                      {user.username}#{user.id}
-                    </span>
+            <>
+              {isAssigneeSearching && searchedAssignees.length === 0 &&
+                <p className="px-4 py-3 text-sm text-zinc-500">
+                  Searching users...
+                </p>}
 
-                    <span className={`text-md font-medium ${
-                      user.alreadyAssigned
-                        ? "text-zinc-400"
-                        : "text-blue-600"
-                    }`}>
-                      {user.alreadyAssigned ? "Already assigned" : "Assign"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="px-4 pb-2 text-sm text-zinc-500">
-                No users found.
-              </p>
-            )
+              {searchedAssignees.length > 0 ? (
+                <div className="mt-2">
+                  {searchedAssignees.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      disabled={user.alreadyAssigned}
+                      onClick={() => assignToTask(user.id, user.username)}
+                      className={`
+                        flex w-full items-center justify-between
+                        mt-2 rounded-lg border border-zinc-200
+                        px-4 py-2 text-left
+                        ${
+                          user.alreadyAssigned
+                            ? "bg-zinc-50 text-zinc-400"
+                            : "bg-white hover:bg-sky-100 cursor-pointer"
+                        }
+                      `}
+                    >
+                      <span className="text-lg font-medium">
+                        {user.username}#{user.id}
+                      </span>
+
+                      <span className={`text-md font-medium ${
+                        user.alreadyAssigned
+                          ? "text-zinc-400"
+                          : "text-blue-600"
+                      }`}>
+                        {user.alreadyAssigned ? "Already assigned" : "Assign"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-4 pb-2 text-sm text-zinc-500">
+                  No users found.
+                </p>
+              )}
+            </>
           )
           : <p className="px-4 pb-2 text-sm text-zinc-600">Type in a username of at least 2 characters.</p>
           }

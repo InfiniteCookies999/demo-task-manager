@@ -66,7 +66,7 @@ public class BoardInvitesControllerTests {
 
         mockMvc.perform(get("/api/boards/1/invites/user-search")
                 .session(session)
-                .param("username", "test"))
+                .param("search", "test"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(2))

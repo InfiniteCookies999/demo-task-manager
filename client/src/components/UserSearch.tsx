@@ -65,7 +65,12 @@ export default function UserSearch<T>(
       cancelled = true;
       window.clearTimeout(timeoutId);
     }
-  }, [searchedUsername]);
+  }, [
+    searchedUsername,
+    setFoundUsers,
+    setIsSearching,
+    handleError
+  ]);
 
   return (
     <div className="mb-3">

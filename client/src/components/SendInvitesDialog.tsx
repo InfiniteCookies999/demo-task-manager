@@ -74,16 +74,17 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
           headerText="Find Users by Username"
           searchEndpoint={
             (username) =>
-              `/api/boards/${boardId}/invites/user-search?username=${encodeURIComponent(username)}`
+              `/api/boards/${boardId}/invites/user-search?search=${encodeURIComponent(username)}`
           }
         />
 
-        <div className="overflow-hidden">
+        <div className="min-h-[300px] overflow-y-auto">
           {searchedUsername.trim().length >= 2 ? (
-            isSearching ? (
-              <p className="px-4 py-3 text-sm text-zinc-500">Searching users...</p>
-            ) : (
-              foundUsers.length > 0 ? (
+            <>
+              {isSearching && foundUsers.length === 0 &&
+                <p className="px-4 py-3 text-sm text-zinc-500">Searching users...</p>}
+
+              {foundUsers.length > 0 ? (
                 foundUsers.map((user) => {
 
                   const statusMessage = user.alreadyMember
@@ -131,8 +132,8 @@ export default function SendInvitesDialog({ boardId, onClose }: SendInvitesDialo
                 })
               ) : (
                 <p className="px-4 py-3 text-sm text-zinc-600">No users found.</p>
-              )
-            )
+              )}
+            </>
           ) : (
             <p className="px-4 py-3 text-sm text-zinc-600">Type in a username of at least 2 characters.</p>
           )}

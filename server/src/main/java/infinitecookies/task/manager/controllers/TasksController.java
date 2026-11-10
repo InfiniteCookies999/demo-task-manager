@@ -48,31 +48,11 @@ public class TasksController {
         @RequestParam
         @Valid
         @NotBlank
-        @Size(min = 2, max = User.MAX_USERNAME_LENGTH)
-        String username
+        @Size(min = 2, max = User.MAX_USERNAME_LENGTH + 21) // +21 for long ID digits.
+        String search
     ) {
-        return service.searchAssignees(sessionUser.id(), boardId, id, username);
+        return service.searchAssignees(sessionUser.id(), boardId, id, search);
     }
-
-//    @PutMapping("/{taskId}/assignees/{assignedUserId}")
-//    public void assignToTask(
-//        @PathVariable Long boardId,
-//        @PathVariable Long taskId,
-//        @PathVariable Long assignedUserId,
-//        SessionUser sessionUser
-//    ) {
-//        service.assignToTask(sessionUser.id(), boardId, taskId, assignedUserId);
-//    }
-//
-//    @DeleteMapping("/{taskId}/assignees/{assignedUserId}")
-//    public void unassignFromTask(
-//        @PathVariable Long boardId,
-//        @PathVariable Long taskId,
-//        @PathVariable Long assignedUserId,
-//        SessionUser sessionUser
-//    ) {
-//        service.unassignFromTask(sessionUser.id(), boardId, taskId, assignedUserId);
-//    }
 
     @PatchMapping("/{id}")
     public void updateTask(@PathVariable Long boardId, @PathVariable Long id,

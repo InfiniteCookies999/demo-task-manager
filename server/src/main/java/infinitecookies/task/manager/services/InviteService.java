@@ -9,6 +9,9 @@ import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
+import infinitecookies.task.manager.utils.UserSearchParser;
+import infinitecookies.task.manager.utils.UserSearchParts;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +75,7 @@ public class InviteService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserInviteSearchResponse> searchUsers(Long sessionUserId, Long boardId, String username) {
+    public List<UserInviteSearchResponse> searchUsers(Long sessionUserId, Long boardId, String search) {
         boardService.checkHasAuthorization(sessionUserId, boardId);
 
         Board board = boardRepository.findById(boardId)
@@ -86,7 +89,13 @@ public class InviteService {
             .map(invite -> invite.getInvitedUser().getId())
             .collect(Collectors.toSet());
 
-        return userRepository.findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc(username)
+        UserSearchParts searchParts = UserSearchParser.parse(search);
+
+        return userRepository.searchUsersForInvite(
+                searchParts.username(),
+                searchParts.userId(),
+                PageRequest.of(0, 10)
+            )
             .stream()
             .filter(user -> !user.getId().equals(sessionUserId))
             .map(user -> new UserInviteSearchResponse(

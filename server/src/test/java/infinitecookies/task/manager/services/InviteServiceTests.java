@@ -15,6 +15,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -224,7 +226,7 @@ public class InviteServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(boardRepository.findById(boardId)).thenReturn(Optional.of(board));
-        when(userRepository.findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc("user"))
+        when(userRepository.searchUsersForInvite("user", null, PageRequest.of(0, 10)))
             .thenReturn(List.of(sessionUser, invitedUser, allowedUser, normalUser));
 
         List<UserInviteSearchResponse> response = inviteService.searchUsers(sessionUserId, boardId, "user");
@@ -248,7 +250,7 @@ public class InviteServiceTests {
         assertFalse(response.get(2).alreadyMember());
 
         verify(boardRepository).findById(boardId);
-        verify(userRepository).findTop10ByUsernameContainingIgnoreCaseOrderByUsernameAsc("user");
+        verify(userRepository).searchUsersForInvite("user", null, PageRequest.of(0, 10));
     }
 
     @Test

@@ -37,9 +37,9 @@ public class BoardInvitesController {
         @RequestParam
         @Valid
         @NotBlank
-        @Size(min = 2, max = User.MAX_USERNAME_LENGTH)
-        String username
+        @Size(min = 2, max = User.MAX_USERNAME_LENGTH + 21) // +21 for long ID digits.
+        String search
     ) {
-        return service.searchUsers(sessionUser.id(), boardId, username);
+        return service.searchUsers(sessionUser.id(), boardId, search);
     }
 }

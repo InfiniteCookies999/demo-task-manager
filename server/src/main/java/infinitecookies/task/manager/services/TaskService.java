@@ -6,7 +6,11 @@ import infinitecookies.task.manager.models.User;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.models.websock.*;
 import infinitecookies.task.manager.repositories.*;
+import infinitecookies.task.manager.utils.UserSearchParser;
+import infinitecookies.task.manager.utils.UserSearchParts;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,7 +104,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskAssigneeSearchResponse> searchAssignees(Long sessionUserId, Long boardId, Long id,
-                                                            String username) {
+                                                            String search) {
         boardService.checkHasAuthorization(sessionUserId, boardId);
 
         Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
@@ -110,7 +114,14 @@ public class TaskService {
             .map(User::getId)
             .collect(Collectors.toSet());
 
-        return userRepository.findTop10ByUsernameIgnoreCaseBelongingToBoardId(username, boardId)
+        UserSearchParts searchParts = UserSearchParser.parse(search);
+
+        return userRepository.searchAssignees(
+                searchParts.username(),
+                searchParts.userId(),
+                boardId,
+                PageRequest.of(0, 10)
+            )
             .stream()
             .map(user -> new TaskAssigneeSearchResponse(
                 user.getId(),
