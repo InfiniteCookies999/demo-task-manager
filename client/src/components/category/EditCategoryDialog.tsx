@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CATEGORY_COLORS, type Category } from "../types/category";
-import { SquarePen, X } from "lucide-react";
-import DeleteCollapsable from "./DeleteCollapsable";
-import { useAppContext } from "../contexts/AppContext";
-import { apiFetch } from "../api/apiFetch";
+import { CATEGORY_COLORS, type Category } from "../../types/category";
+import { SquarePen } from "lucide-react";
+import DeleteCollapsable from "../shared/DeleteCollapsable";
+import { useAppContext } from "../../contexts/AppContext";
+import { apiFetch } from "../../api/apiFetch";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { removeCategoryForDelete } from "../utils/categoryDeleting";
-import SaveAndCancelButtons from "./SaveAndCancelButtons";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { removeCategoryForDelete } from "../../utils/categoryDeleting";
+import SaveAndCancelButtons from "../shared/SaveAndCancelButtons";
 
 
 type EditCategoryDialogProps = {

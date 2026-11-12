@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import DialogTitleAndClose from "./DialogTitleAndClose";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
 import { createPortal } from "react-dom";
-import type { Invite } from "../types/invite";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
+import type { Invite } from "../../types/invite";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 
 type ManageInvitesDialogProps = {

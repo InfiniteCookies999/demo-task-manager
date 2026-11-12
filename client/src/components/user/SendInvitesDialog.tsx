@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { type UserInviteSearchResult } from "../types/user";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { type UserInviteSearchResult } from "../../types/user";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
 import { Clock8, UserRoundPlus } from "lucide-react";
-import UserSearch from "./UserSearch";
+import UserSearch from "../shared/UserSearch";
 
 type SendInvitesDialogProps = {
   boardId: number;

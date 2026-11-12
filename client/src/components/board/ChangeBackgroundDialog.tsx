@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { useAppContext } from "../contexts/AppContext";
-import { type Board } from "../types/board";
-import { apiFetch } from "../api/apiFetch";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { useAppContext } from "../../contexts/AppContext";
+import { type Board } from "../../types/board";
+import { apiFetch } from "../../api/apiFetch";
 
 type ChangeBackgroundDialogProps = {
   board: Board;
@@ -11,12 +11,34 @@ type ChangeBackgroundDialogProps = {
   onClose: () => void;
 };
 
-export default function ChangeBackgroundDialog({ board, setBoard, onClose }: ChangeBackgroundDialogProps) {
+type BackgroundSettings = Pick<
+  Board,
+  | "backgroundType"
+  | "backgroundSolidColor"
+  | "backgroundGradientStartColor"
+  | "backgroundGradientEndColor"
+>;
+
+
+export default function ChangeBackgroundDialog(
+  {
+    board,
+    setBoard,
+    onClose
+  }: ChangeBackgroundDialogProps) {
 
   const { handleError } = useAppContext();
 
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  const originalBackground = useRef<BackgroundSettings>({
+    backgroundType: board.backgroundType,
+    backgroundSolidColor: board.backgroundSolidColor,
+    backgroundGradientStartColor: board.backgroundGradientStartColor,
+    backgroundGradientEndColor: board.backgroundGradientEndColor
+  });
+
+  const hasSaved = useRef(false);
 
   const previewStyle =
     board.backgroundType === "SOLID"
@@ -30,11 +52,19 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
   }, []);
 
   function close() {
+    if (!hasSaved.current) {
+      setBoard(current =>
+        current
+          ? { ...current, ...originalBackground.current }
+          : current
+      );
+    }
+
     dialogRef.current?.close();
     onClose();
   }
 
-  function updateBoard(updates: Partial<Board>) {
+  function updateBoardAppearence(updates: Partial<Board>) {
     setBoard((current) =>
       current ? { ...current, ...updates } : current
     );
@@ -54,6 +84,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
           backgroundGradientEndColor: board.backgroundGradientEndColor
         })
       });
+      hasSaved.current = true;
       close();
     } catch (err) {
       handleError(err);
@@ -77,7 +108,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
         <div className="flex gap-2 mb-5">
           <button
             type="button"
-            onClick={() => updateBoard({ backgroundType: "SOLID" })}
+            onClick={() => updateBoardAppearence({ backgroundType: "SOLID" })}
             className={`flex-1 rounded-lg border p-3 font-medium cursor-pointer ${
               board.backgroundType === "SOLID"
                 ? "border-blue-500 bg-sky-50 text-sky-700"
@@ -89,7 +120,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
 
           <button
             type="button"
-            onClick={() => updateBoard({ backgroundType: "GRADIENT" })}
+            onClick={() => updateBoardAppearence({ backgroundType: "GRADIENT" })}
             className={`flex-1 rounded-lg border p-3 font-medium cursor-pointer ${
               board.backgroundType === "GRADIENT"
                 ? "border-blue-500 bg-sky-50 text-sky-700"
@@ -108,7 +139,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
               type="color"
               value={board.backgroundSolidColor}
               onChange={(e) => {
-                updateBoard({ backgroundSolidColor: e.target.value });
+                updateBoardAppearence({ backgroundSolidColor: e.target.value });
               }}
               className="h-10 w-14 cursor-pointer"
             />
@@ -122,7 +153,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
                 type="color"
                 value={board.backgroundGradientStartColor}
                 onChange={(e) => {
-                  updateBoard({ backgroundGradientStartColor: e.target.value });
+                  updateBoardAppearence({ backgroundGradientStartColor: e.target.value });
                 }}
                 className="h-10 w-14 cursor-pointer"
               />
@@ -134,7 +165,7 @@ export default function ChangeBackgroundDialog({ board, setBoard, onClose }: Cha
                 type="color"
                 value={board.backgroundGradientEndColor}
                 onChange={(e) => {
-                  updateBoard({ backgroundGradientEndColor: e.target.value });
+                  updateBoardAppearence({ backgroundGradientEndColor: e.target.value });
                 }}
                 className="h-10 w-14 cursor-pointer"
               />

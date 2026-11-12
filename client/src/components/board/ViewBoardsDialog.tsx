@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
-import type { Board } from "../types/board";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
+import type { Board } from "../../types/board";
 import { useNavigate } from "react-router-dom";
-import { useUserContext } from "../contexts/UserContext";
+import { useUserContext } from "../../contexts/UserContext";
 
 type ViewBoardsDialogProps = {
   onClose: () => void;

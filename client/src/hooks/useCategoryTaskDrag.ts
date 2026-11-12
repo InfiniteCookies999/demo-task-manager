@@ -57,13 +57,16 @@ export function useCategoryTaskDrag(
         return;
       }
 
-      // Don't update state multiple times.
-      if (taskDropTarget?.type === "category" &&
-          taskDropTarget.id === category.id) {
-        return;
-      }
 
-      setTaskDropTarget({ type: "category", id: category.id });
+      setTaskDropTarget((current) => {
+        // Don't update state multiple times.
+        if (current?.type === "category" &&
+            current.id === category.id) {
+          return current;
+        }
+
+        return { type: "category", id: category.id };
+      });
     },
     [draggingCategory, tasks, draggingTask]
   );

@@ -1,19 +1,17 @@
 import { useCallback } from "react";
 import type { Category } from "../types/category";
 import type { Task } from "../types/task";
-import type { BackgroundUpdatedEventPayload, BoardEvent, CategoryUpdatedEventPayload, TasksReorderedEventPayload, TaskUpdatedEventPayload } from "../types/event";
+import type {  BoardEvent, CategoryUpdatedEventPayload, TasksReorderedEventPayload, TaskUpdatedEventPayload } from "../types/event";
 import { reorderCategories } from "../utils/categoryReordering";
 import { removeCategoryForDelete } from "../utils/categoryDeleting";
 import { findTaskCategoryId } from "../utils/taskFinding";
 import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
 import { removeTaskForDelete } from "../utils/taskDeleting";
-import type { Board } from "../types/board";
 import { useUserContext } from "../contexts/UserContext";
 
-export function useBoardEvents(
+export function useBoardCategoryEvents(
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>,
-  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>,
-  setBoard: React.Dispatch<React.SetStateAction<Board | null>>
+  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>
 ) {
 
   const { user } = useUserContext();
@@ -167,27 +165,6 @@ export function useBoardEvents(
         const taskId: number = event.payload.taskId;
         const categoryId: number = event.payload.categoryId;
         setTasksByCategory((current) => removeTaskForDelete(taskId, categoryId, current));
-        break;
-      }
-      case "BACKGROUND_UPDATED": {
-        const {
-          backgroundType,
-          backgroundSolidColor,
-          backgroundGradientStartColor,
-          backgroundGradientEndColor
-        }: BackgroundUpdatedEventPayload = event.payload;
-
-        setBoard((current) => {
-          if (!current) return null;
-
-          return {
-            ...current,
-            backgroundType: backgroundType,
-            backgroundSolidColor: backgroundSolidColor,
-            backgroundGradientStartColor: backgroundGradientStartColor,
-            backgroundGradientEndColor: backgroundGradientEndColor
-          };
-        });
         break;
       }
     }

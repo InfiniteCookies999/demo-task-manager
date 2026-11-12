@@ -20,7 +20,7 @@ import {
   INSERT_UNORDERED_LIST_COMMAND
 } from "@lexical/list";
 
-import { editorExtension, MAX_LENGTH } from "../lexical/editorExtension";
+import { editorExtension, MAX_LENGTH } from "../../lexical/editorExtension";
 
 
 function ToolBar() {

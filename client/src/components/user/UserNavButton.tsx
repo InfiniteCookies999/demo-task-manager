@@ -1,34 +1,31 @@
 import { useState } from "react";
-import type { Invite } from "../types/invite";
+import type { Invite } from "../../types/invite";
 import { CircleUserRound, Mail } from "lucide-react";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
-import { useUserContext } from "../contexts/UserContext";
-
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
+import { useUserContext } from "../../contexts/UserContext";
+import ManageInvitesDialog from "./ManageInvitesDialog";
+import ChangeUsernameDialog from "./ChangeUsernameDialog";
+import ViewBoardsDialog from "../board/ViewBoardsDialog";
+import type { Board } from "../../types/board";
 
 type UserNavButtonProps = {
-  invites: Invite[];
-  setInvites: React.Dispatch<React.SetStateAction<Invite[]>>;
-  setViewInvitesOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setChangeUsernameOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setViewBoardsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setBoard: React.Dispatch<React.SetStateAction<Board | null>>;
 };
 
-export default function UserNavButton(
-  {
-    invites,
-    setInvites,
-    setViewInvitesOpen,
-    setChangeUsernameOpen,
-    setViewBoardsOpen
-  }:
-  UserNavButtonProps
-) {
+
+export default function UserNavButton({ setBoard }: UserNavButtonProps) {
 
   const { handleError } = useAppContext();
   const { user } = useUserContext();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const [viewInvitesOpen, setViewInvitesOpen] = useState(false);
+  const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
+  const [viewBoardsOpen, setViewBoardsOpen] = useState(false);
+
+  const [invites, setInvites] = useState<Invite[]>([]);
 
   async function fetchInvites() {
     try {
@@ -127,6 +124,25 @@ export default function UserNavButton(
           </button>
         </div>
       )}
+
+      {viewInvitesOpen &&
+        <ManageInvitesDialog
+          invites={invites}
+          setInvites={setInvites}
+          onClose={() => {setViewInvitesOpen(false)}}
+        />
+      }
+
+      {changeUsernameOpen &&
+        <ChangeUsernameDialog
+          setBoard={setBoard}
+          onClose={() => setChangeUsernameOpen(false)}
+        />
+      }
+      {viewBoardsOpen &&
+        <ViewBoardsDialog onClose={() => setViewBoardsOpen(false)} />
+      }
+
     </div>
   );
 }

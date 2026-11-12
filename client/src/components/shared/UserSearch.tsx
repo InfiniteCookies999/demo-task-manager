@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
 
 type UserSearchProps<T> = {
   inputId: string;

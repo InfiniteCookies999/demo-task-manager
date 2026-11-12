@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { useAppContext } from "../contexts/AppContext";
-import { apiFetch } from "../api/apiFetch";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { useAppContext } from "../../contexts/AppContext";
+import { apiFetch } from "../../api/apiFetch";
 import { CheckCircle2 } from "lucide-react";
-import type { Board } from "../types/board";
-import { useUserContext } from "../contexts/UserContext";
+import type { Board } from "../../types/board";
+import { useUserContext } from "../../contexts/UserContext";
 
 type ChangeUsernameDialogProps = {
   setBoard: React.Dispatch<React.SetStateAction<Board | null>>;
@@ -25,7 +25,7 @@ export default function ChangeUsernameDialog(
 
   const [editUsername, setEditUsername] = useState(user.username);
   const [changeSuccessful, setChangeSuccessful] = useState(false);
-  
+
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
@@ -53,7 +53,9 @@ export default function ChangeUsernameDialog(
         return {...current, username: editUsername };
       });
       setBoard((current) => {
-        if (!current) return null;
+        if (!current) {
+          return null;
+        }
         if (current.boardOwnerId === user.id) {
           return {...current, boardOwnerUsername: editUsername};
         }

@@ -1,5 +1,5 @@
 import { Circle, CircleCheck } from "lucide-react";
-import type { Task } from "../types/task";
+import type { Task } from "../../types/task";
 
 type TaskCompletedCircleProps = {
   task: Task;

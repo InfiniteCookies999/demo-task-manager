@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import type { Task, TaskAssignee } from "../types/task";
+import type { Task, TaskAssignee } from "../../types/task";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
 import TaskCompletedCircle from "./TaskCompletedCircle";
 import type { SerializedEditorState } from "lexical";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { editorExtension } from "../lexical/editorExtension";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
-import { hasDescription } from "../utils/hasDescription";
-import { useUserContext } from "../contexts/UserContext";
+import { editorExtension } from "../../lexical/editorExtension";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
+import { hasDescription } from "../../utils/hasDescription";
+import { useUserContext } from "../../contexts/UserContext";
 
 type ViewTaskDialogProps = {
   boardId: number;

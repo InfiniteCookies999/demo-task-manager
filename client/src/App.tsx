@@ -1,18 +1,51 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "./api/apiFetch";
-import useApiError from "./hooks/useApiError";
 import { AppContext } from "./contexts/AppContext";
 import type { User } from "./types/user";
-import Board from "./components/Board";
-import BoardRoute from "./components/BoardRoute";
+import Board from "./components/board/Board";
+import BoardRoute from "./components/board/BoardRoute";
 import { Route, Routes } from "react-router-dom";
 import { UserContext } from "./contexts/UserContext";
-import ErrorAlert from "./components/ErrorAlert";
+import ErrorAlert from "./components/shared/ErrorAlert";
+
+
+type AuthenicatedAppProps = {
+  user: User;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+};
+
+function AuthenicatedApp({ user, setUser }: AuthenicatedAppProps) {
+
+  const userValue = useMemo(() => ({ user, setUser }),
+    [user, setUser]
+  );
+
+  return (
+    <UserContext.Provider value={userValue}>
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <Board boardId={user.ownedBoardId} />
+          }
+        />
+        <Route
+          path="/boards/:boardId"
+          element={<BoardRoute />}
+        />
+      </Routes>
+    </UserContext.Provider>
+  );
+}
 
 function App() {
 
   const [ user, setUser ] = useState<User | null>(null);
-  const { error, handleError } = useApiError();
+  const [error, setError] = useState("");
+
+  const handleError = useCallback((err: unknown) => {
+    setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+  }, []);
 
   const hasLoggedIn = useRef(false);
 
@@ -38,25 +71,14 @@ function App() {
     fetchUser();
   }, []);
 
+  const appValue = useMemo(() => ({ handleError }),
+    [handleError]
+  );
+
   return (
-    <AppContext.Provider value={{handleError}}>
+    <AppContext.Provider value={appValue}>
       <>
-        {user && (
-          <UserContext.Provider value={{user, setUser}}>
-            <Routes>
-              <Route
-                path="*"
-                element={
-                  <Board boardId={user.ownedBoardId} error={error} />
-                }
-              />
-              <Route
-                path="/boards/:boardId"
-                element={<BoardRoute error={error} />}
-              />
-            </Routes>
-          </UserContext.Provider>
-        )}
+        {user && <AuthenicatedApp user={user} setUser={setUser} />}
         <div className="fixed bottom-6 left-6 z-50">
           <ErrorAlert error={error}/>
         </div>

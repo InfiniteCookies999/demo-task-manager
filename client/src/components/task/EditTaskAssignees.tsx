@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { Task, TaskAssignee, TaskAssigneeSearchResult } from "../types/task";
-import UserSearch from "./UserSearch";
-import { apiFetch } from "../api/apiFetch";
-import { useAppContext } from "../contexts/AppContext";
+import type { Task, TaskAssignee, TaskAssigneeSearchResult } from "../../types/task";
+import UserSearch from "../shared/UserSearch";
+import { apiFetch } from "../../api/apiFetch";
+import { useAppContext } from "../../contexts/AppContext";
 import { ChevronDown } from "lucide-react";
 
 

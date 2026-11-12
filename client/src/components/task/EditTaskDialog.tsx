@@ -1,16 +1,16 @@
 import { SquarePen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Task, TaskAssignee } from "../types/task";
-import RichTexEditor from "./RichTextEditor";
+import type { Task, TaskAssignee } from "../../types/task";
+import RichTexEditor from "../editor/RichTextEditor";
 import type { SerializedEditorState } from "lexical";
-import DeleteCollapsable from "./DeleteCollapsable";
-import { useAppContext } from "../contexts/AppContext";
-import { apiFetch } from "../api/apiFetch";
+import DeleteCollapsable from "../shared/DeleteCollapsable";
+import { useAppContext } from "../../contexts/AppContext";
+import { apiFetch } from "../../api/apiFetch";
 import { createPortal } from "react-dom";
-import DialogTitleAndClose from "./DialogTitleAndClose";
-import { removeTaskForDelete } from "../utils/taskDeleting";
+import DialogTitleAndClose from "../shared/DialogTitleAndClose";
+import { removeTaskForDelete } from "../../utils/taskDeleting";
 import EditTaskAssignees from "./EditTaskAssignees";
-import SaveAndCancelButtons from "./SaveAndCancelButtons";
+import SaveAndCancelButtons from "../shared/SaveAndCancelButtons";
 
 type EditTaskDialogProps = {
   boardId: number;

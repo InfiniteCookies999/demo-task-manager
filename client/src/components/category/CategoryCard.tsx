@@ -1,24 +1,21 @@
 import { useState } from "react";
-import type { Category } from "../types/category";
-import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../types/category";
+import type { Category } from "../../types/category";
+import { CATEGORY_COLORS, SEPARATER_CATEGORY_BORDER_COLORS } from "../../types/category";
 import { Plus, SquarePen } from "lucide-react";
 import EditCategoryDialog from "./EditCategoryDialog";
-import { MAX_TASKS, type Task, type TaskDropTarget } from "../types/task";
-import { useAppContext } from "../contexts/AppContext";
-import { apiFetch } from "../api/apiFetch";
-import TaskCard from "./TaskCard";
-import { useCategoryDrag } from "../hooks/useCategoryDrag";
-import { useCategoryTaskDrag } from "../hooks/useCategoryTaskDrag";
+import { MAX_TASKS, type Task, type TaskDropTarget } from "../../types/task";
+import { useAppContext } from "../../contexts/AppContext";
+import { apiFetch } from "../../api/apiFetch";
+import TaskCard from "../task/TaskCard";
+import { useCategoryDrag } from "../../hooks/useCategoryDrag";
+import { useCategoryTaskDrag } from "../../hooks/useCategoryTaskDrag";
+import { useBoardCategoriesContext } from "../../contexts/BoardCategoriesContext";
 
 type CategoryCardProps = {
   category: Category;
-  categories: Category[];
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   tasks: Task[];
   prevCategoryId: number | null;
   nextCategoryId: number | null;
-  tasksByCategory: Record<number, Task[]>;
-  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
   addTask: (task: Task) => void;
   // Category dragging
   draggingCategory: Category | null;
@@ -104,13 +101,9 @@ function DropArea(
 export default function CategoryCard(
   {
     category,
-    categories,
-    setCategories,
     tasks,
     prevCategoryId,
     nextCategoryId,
-    tasksByCategory,
-    setTasksByCategory,
     addTask,
     // Category dragging
     draggingCategory,
@@ -127,6 +120,13 @@ export default function CategoryCard(
 ) {
 
   const { handleError } = useAppContext();
+
+  const {
+    categories,
+    setCategories,
+    tasksByCategory,
+    setTasksByCategory,
+  } = useBoardCategoriesContext();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -294,8 +294,6 @@ export default function CategoryCard(
               task={task}
               tasks={tasks}
               setTasks={setTasks}
-              tasksByCategory={tasksByCategory}
-              setTasksByCategory={setTasksByCategory}
               draggingTask={draggingTask}
               setDraggingTask={setDraggingTask}
               taskDropTarget={taskDropTarget}
@@ -309,8 +307,6 @@ export default function CategoryCard(
               task={null}
               tasks={tasks}
               setTasks={setTasks}
-              tasksByCategory={tasksByCategory}
-              setTasksByCategory={setTasksByCategory}
               draggingTask={draggingTask}
               setDraggingTask={setDraggingTask}
               taskDropTarget={taskDropTarget}

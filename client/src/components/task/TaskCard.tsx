@@ -1,14 +1,15 @@
 import { FileText, SquarePen, UserRound } from "lucide-react";
-import type { Task, TaskDropTarget } from "../types/task";
-import { apiFetch } from "../api/apiFetch";
-import type { Category } from "../types/category";
-import { useAppContext } from "../contexts/AppContext";
+import type { Task, TaskDropTarget } from "../../types/task";
+import { apiFetch } from "../../api/apiFetch";
+import type { Category } from "../../types/category";
+import { useAppContext } from "../../contexts/AppContext";
 import { useState } from "react";
 import EditTaskDialog from "./EditTaskDialog";
 import ViewTaskDialog from "./ViewTaskDialog";
 import TaskCompletedCircle from "./TaskCompletedCircle";
-import { useTaskDrag } from "../hooks/useTaskDrag";
-import { hasDescription } from "../utils/hasDescription";
+import { useTaskDrag } from "../../hooks/useTaskDrag";
+import { hasDescription } from "../../utils/hasDescription";
+import { useBoardCategoriesContext } from "../../contexts/BoardCategoriesContext";
 
 type TaskProps = {
   category: Category;
@@ -16,8 +17,6 @@ type TaskProps = {
   task: Task | null;
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  tasksByCategory: Record<number, Task[]>;
-  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>
   // Dragging
   draggingTask: Task | null;
   setDraggingTask: React.Dispatch<React.SetStateAction<Task | null>>;
@@ -64,8 +63,6 @@ export default function TaskCard(
     task,
     tasks,
     setTasks,
-    tasksByCategory,
-    setTasksByCategory,
     // Dragging
     draggingTask,
     setDraggingTask,
@@ -76,6 +73,11 @@ export default function TaskCard(
 ) {
 
   const { handleError } = useAppContext();
+
+  const {
+    tasksByCategory,
+    setTasksByCategory,
+  } = useBoardCategoriesContext();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
