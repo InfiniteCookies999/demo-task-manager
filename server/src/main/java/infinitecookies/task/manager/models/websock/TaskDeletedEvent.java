@@ -1,4 +1,4 @@
 package infinitecookies.task.manager.models.websock;
 
-public record TaskDeletedEvent(Long boardId, Long categoryId, Long taskId) {
+public record TaskDeletedEvent(Long boardId, long revision, Long categoryId, Long taskId) {
 }

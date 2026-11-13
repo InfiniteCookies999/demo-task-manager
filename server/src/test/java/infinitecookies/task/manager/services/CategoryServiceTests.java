@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.CategoryColor;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
@@ -41,12 +43,16 @@ public class CategoryServiceTests {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private BoardRevisionService boardRevisionService;
+
     private CategoryService categoryService;
 
     @BeforeEach
     void setUp() {
         // Manually setup mocks to test authorization at the boardService level.
         BoardService boardService = new BoardService(
+            boardRevisionService,
             boardRepository,
             applicationEventPublisher
         );
@@ -55,6 +61,7 @@ public class CategoryServiceTests {
             categoryRepository,
             boardRepository,
             boardService,
+            boardRevisionService,
             applicationEventPublisher
         );
     }
@@ -64,11 +71,11 @@ public class CategoryServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.createCategory(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> categoryService.createCategory(1L, 1L));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(categoryRepository, never()).save(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -78,11 +85,11 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(categoryRepository.countByBoardId(1L)).thenReturn((long)Board.MAX_CATEGORIES);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.createCategory(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> categoryService.createCategory(1L, 1L));
 
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
         verify(categoryRepository, never()).save(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -112,8 +119,7 @@ public class CategoryServiceTests {
     void getCategoriesLacksBoardAuthorization() {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.getCategories(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> categoryService.getCategories(1L, 1L));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(categoryRepository, never()).findAllByBoardIdOrderByPositionAsc(any());
@@ -124,11 +130,12 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         CategoryUpdateRequest request = mock(CategoryUpdateRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.updateCategory(1L, 1L, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> categoryService.updateCategory(1L, 1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(categoryRepository, never()).findByIdAndBoardId(any(), any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -153,11 +160,12 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         CategoryReorderRequest request = mock(CategoryReorderRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.reorderCategories(1L, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> categoryService.reorderCategories(1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(categoryRepository, never()).findAllByBoardId(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -174,11 +182,12 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(categoryRepository.findAllByBoardId(1L)).thenReturn(categories);
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+        ApiException e = assertThrows(ApiException.class,
             () -> categoryService.reorderCategories(1L, 1L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
 
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -195,11 +204,12 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(categoryRepository.findAllByBoardId(1L)).thenReturn(List.of(category1, category2));
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+        ApiException e = assertThrows(ApiException.class,
             () -> categoryService.reorderCategories(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("One or more categories not found in board", e.getReason());
+        assertEquals(ApiErrorCode.CATEGORY_NOT_FOUND, e.getCode());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -219,11 +229,12 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(categoryRepository.findAllByBoardId(1L)).thenReturn(List.of(category1, category2, category3));
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+        ApiException e = assertThrows(ApiException.class,
             () -> categoryService.reorderCategories(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Duplicate category IDs are not allowed", e.getReason());
+        assertEquals(ApiErrorCode.CATEGORY_DUPLICATE_ID, e.getCode());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -259,11 +270,11 @@ public class CategoryServiceTests {
     void deleteCategoryLacksBoardAuthorization() {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.deleteCategory(1L, 1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> categoryService.deleteCategory(1L, 1L, 1L));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(categoryRepository, never()).deleteByIdAndBoardId(any(), any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -272,10 +283,10 @@ public class CategoryServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(categoryRepository.deleteByIdAndBoardId(1L, 1L)).thenReturn(0);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> categoryService.deleteCategory(1L, 1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> categoryService.deleteCategory(1L, 1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 

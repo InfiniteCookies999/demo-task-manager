@@ -7,6 +7,7 @@ type BoardCategoriesContextType = {
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   tasksByCategory: Record<number, Task[]>;
   setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>;
+  resynchronizeBoard: () => void;
 };
 
 export const BoardCategoriesContext = createContext<BoardCategoriesContextType | null>(null);

@@ -28,7 +28,7 @@ public class TasksController {
     }
 
     @GetMapping
-    public List<TaskResponse> getTasks(@PathVariable Long boardId, SessionUser sessionUser) {
+    public TaskListResponse getTasks(@PathVariable Long boardId, SessionUser sessionUser) {
         return service.getTasks(sessionUser.id(), boardId);
     }
 

@@ -5,6 +5,8 @@ import createDragClone from "../utils/createDragClone";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
 import { localReorderTasksInCategory } from "../utils/taskReordering";
+import { ApiError, ApiErrorCode } from "../api/ApiError";
+import { useBoardCategoriesContext } from "../contexts/BoardCategoriesContext";
 
 type UseTaskDragProps = {
   category: Category;
@@ -33,6 +35,8 @@ export function useTaskDrag(
   }:
   UseTaskDragProps
 ) {
+
+  const { resynchronizeBoard } = useBoardCategoriesContext();
 
   const { handleError } = useAppContext();
 
@@ -128,6 +132,20 @@ export function useTaskDrag(
         })
       });
     } catch (err) {
+      // Check if the tasks are likely out of sync.
+      if (err instanceof ApiError) {
+        if (err.code === ApiErrorCode.TASK_TARGET_CATEGORY_NOT_FOUND ||
+            err.code === ApiErrorCode.TASK_REORDER_MISSING_TASK ||
+            err.code === ApiErrorCode.TASK_NOT_FOUND ||
+            err.code === ApiErrorCode.TASK_LIMIT_EXCEEDED ||
+            err.code === ApiErrorCode.TASK_NEITHER_MOVED_OR_IN_TARGET_CATEGORY ||
+            err.code === ApiErrorCode.TASK_MOVED_TASK_MUST_BE_IN_DIFF_CATEGORY
+          ) {
+          resynchronizeBoard();
+          return;
+        }
+      }
+
       handleError(err);
     }
   }
@@ -156,20 +174,6 @@ export function useTaskDrag(
       position: index,
     }));
 
-    // Optmistic moving problems:
-    // 1. We move a card that another user already moved to a different category.
-    //    Now our change is rejected but we have no rollback strategy.
-    // 2. Another user moves a different card out to a different category so now we
-    //    reorder the incorrect number of cards.
-    // 3. Another user adds a different card to this category so now we reorder the
-    //    incorrect number of cards.
-    //
-    // Always rolling back would be problematic we could override newer changes.
-    //
-    // Possible solution:
-    // If the server responds with an error send a request to the server asking it
-    // where the card we just tried to move should be.
-    //
     setTasks(updated);
     clearDragState();
 

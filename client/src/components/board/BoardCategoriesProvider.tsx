@@ -3,7 +3,18 @@ import type { Category } from "../../types/category";
 import { BoardCategoriesContext } from "../../contexts/BoardCategoriesContext";
 import type { Task } from "../../types/task";
 
-export function BoardCategoriesProvider({ children }: { children: React.ReactNode }) {
+type BoardCategoriesProviderProps = {
+  resynchronizeBoard: () => void;
+  children: React.ReactNode;
+};
+
+
+export function BoardCategoriesProvider(
+  {
+    resynchronizeBoard,
+    children
+  }: BoardCategoriesProviderProps
+) {
 
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -16,7 +27,8 @@ export function BoardCategoriesProvider({ children }: { children: React.ReactNod
     setCategories,
     tasksByCategory,
     setTasksByCategory,
-  }), [categories, tasksByCategory]);
+    resynchronizeBoard,
+  }), [categories, tasksByCategory, resynchronizeBoard]);
 
   return (
     <BoardCategoriesContext.Provider value={value} >

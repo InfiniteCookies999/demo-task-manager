@@ -14,6 +14,11 @@ export type Task = {
   assignedToYou: boolean;
 };
 
+export type TaskListResponse = {
+  revision: number;
+  tasks: Task[];
+};
+
 export type TaskAssignee = {
   id: number;
   username: string;

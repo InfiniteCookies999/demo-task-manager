@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.entity.Task;
 import infinitecookies.task.manager.models.entity.User;
@@ -27,6 +29,7 @@ public class TaskService {
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
     private final BoardService boardService;
+    private final BoardRevisionService boardRevisionService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -35,12 +38,14 @@ public class TaskService {
                        BoardRepository boardRepository,
                        UserRepository userRepository,
                        BoardService boardService,
+                       BoardRevisionService boardRevisionService,
                        ApplicationEventPublisher applicationEventPublisher) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
         this.userRepository = userRepository;
         this.boardService = boardService;
+        this.boardRevisionService = boardRevisionService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -49,13 +54,16 @@ public class TaskService {
         boardService.checkHasAuthorization(userId, boardId);
 
         Category category = categoryRepository.findByIdAndBoardId(request.categoryId(), boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.CATEGORY_NOT_FOUND, "Category not found"
+            ));
 
         int nextPosition = (int) taskRepository.countByCategoryId(request.categoryId());
 
         if (nextPosition >= Category.MAX_TASKS) {
-            throw new ResponseStatusException(
+            throw new ApiException(
                 HttpStatus.CONFLICT,
+                ApiErrorCode.TASK_LIMIT_EXCEEDED,
                 "A category cannot have more than " + Category.MAX_TASKS + " tasks"
             );
         }
@@ -69,15 +77,17 @@ public class TaskService {
 
         TaskResponse response = TaskResponse.fromTask(task, false);
 
-        applicationEventPublisher.publishEvent(new TaskCreatedEvent(boardId, response));
+        long revision = boardRevisionService.incrementRevision(boardId);
+        applicationEventPublisher.publishEvent(new TaskCreatedEvent(boardId, revision, response));
 
         return response;
     }
 
-    public List<TaskResponse> getTasks(Long userId, Long boardId) {
+    public TaskListResponse getTasks(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
-        return taskRepository.findTasksByBoardId(userId, boardId).stream()
+        long revision = boardRevisionService.getRevision(boardId);
+        List<TaskResponse> tasks = taskRepository.findTasksByBoardId(userId, boardId).stream()
             .map(projection -> new TaskResponse(
                 projection.getId(),
                 projection.getCategoryId(),
@@ -90,6 +100,7 @@ public class TaskService {
                 projection.getAssignedToYou()
             ))
             .toList();
+        return new TaskListResponse(revision, tasks);
     }
 
     public List<TaskAssigneeResponse> getTaskAssignees(Long userId, Long boardId, Long id) {
@@ -107,7 +118,9 @@ public class TaskService {
         boardService.checkHasAuthorization(sessionUserId, boardId);
 
         Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.TASK_NOT_FOUND, "Task not found"
+            ));
 
         Set<Long> assignedUsers = task.getAssignees().stream()
             .map(User::getId)
@@ -135,7 +148,9 @@ public class TaskService {
         boardService.checkHasAuthorization(userId, boardId);
 
         Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.TASK_NOT_FOUND, "Task not found"
+            ));
 
         if (request.name() != null) {
             task.setName(request.name());
@@ -154,8 +169,8 @@ public class TaskService {
             );
 
             if (users.size() != requestedIds.size()) {
-                throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_ASSIGNEE_NOT_MEMBER_OF_BOARD,
                     "One or more users are not members of this board"
                 );
             }
@@ -163,8 +178,10 @@ public class TaskService {
             task.setAssignees(new HashSet<>(users));
         }
 
+        long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(new TaskUpdatedEvent(
             boardId,
+            revision,
             id,
             request.name(),
             request.description(),
@@ -179,13 +196,18 @@ public class TaskService {
         // Positional updates requires updating multiple tasks at the same time and this method
         // has run into a deadlock. Locking based on the board to prevent deadlocking.
         boardRepository.findByIdForReorderWithLock(boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.BOARD_NOT_FOUND, "Board not found"
+            ));
 
         boardService.checkHasAuthorization(userId, boardId);
 
         Category targetCategory =
             categoryRepository.findByIdAndBoardId(request.targetCategoryId(), boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target category not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.TASK_TARGET_CATEGORY_NOT_FOUND,
+                "Target category not found"
+            ));
 
         List<Task> tasks = findAndValidateTasksForReorder(boardId, request);
 
@@ -208,7 +230,10 @@ public class TaskService {
             --tasksInTargetCount;
         }
         if (tasksInTargetCount != targetCategoryCount) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must specify the re-ordering for all tasks");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_REORDER_MISSING_TASK,
+                "Must specify the re-ordering for all tasks"
+            );
         }
 
         // Updating specific logic
@@ -239,8 +264,10 @@ public class TaskService {
             }
         }
 
+        long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(new TasksReorderedEvent(
             boardId,
+            revision,
             sourceCategoryId,
             request.targetCategoryId(),
             sourceTasks != null ? sourceTasks.stream().map(Task::getId).toList() : null,
@@ -254,19 +281,24 @@ public class TaskService {
         // Check for duplicates.
         Set<Long> uniqueIds = new HashSet<>(request.taskIds());
         if (uniqueIds.size() != request.taskIds().size()) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Duplicate task IDs are not allowed");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_DUPLICATE_ID,
+                "Duplicate task IDs are not allowed"
+            );
         }
 
         // Find all tasks including the moved task.
         List<Task> tasks = taskRepository.findByIdInAndCategoryBoardId(request.taskIds(), boardId);
         if (tasks.size() != request.taskIds().size()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more tasks not found");
+            throw new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.TASK_NOT_FOUND,
+                "One or more tasks not found"
+            );
         }
 
         if (tasks.size() > Category.MAX_TASKS) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
+            throw new ApiException(
+                HttpStatus.CONFLICT, ApiErrorCode.TASK_LIMIT_EXCEEDED,
                 "A category cannot have more than " + Category.MAX_TASKS + " tasks"
             );
         }
@@ -276,8 +308,10 @@ public class TaskService {
         for (Task task : tasks) {
             if (!Objects.equals(task.getCategory().getId(), request.targetCategoryId())) {
                 if (!Objects.equals(task.getId(), request.movedTaskId())) {
-                    throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Task neither the moved task or in target category");
+                    throw new ApiException(
+                        HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_NEITHER_MOVED_OR_IN_TARGET_CATEGORY,
+                        "Task neither the moved task or in target category"
+                    );
                 }
             }
         }
@@ -295,14 +329,17 @@ public class TaskService {
         Task movedTask = tasks.stream()
             .filter(task -> Objects.equals(task.getId(), request.movedTaskId()))
             .findFirst()
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Moved task should be in taskIds")
-            );
+            .orElseThrow(() ->
+                new ApiException(
+                    HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_MOVED_TASK_SHOULD_BE_IN_TASK_IDS,
+                    "Moved task should be in taskIds"
+                ));
 
         Long sourceCategoryId = movedTask.getCategory().getId();
         if (Objects.equals(sourceCategoryId, targetCategory.getId())) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Moved task must belong to a different category");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST, ApiErrorCode.TASK_MOVED_TASK_MUST_BE_IN_DIFF_CATEGORY,
+                "Moved task must belong to a different category");
         }
         return movedTask;
     }
@@ -313,7 +350,10 @@ public class TaskService {
 
         // Fetch the task since we need to know its category to renormalize the positions.
         Task task = taskRepository.findByIdAndCategoryBoardId(id, boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+            .orElseThrow(() ->
+                new ApiException(HttpStatus.NOT_FOUND, ApiErrorCode.TASK_NOT_FOUND, "Task not found"
+            ));
+
         long categoryId = task.getCategory().getId();
 
         taskRepository.delete(task);
@@ -325,6 +365,7 @@ public class TaskService {
             tasks.get(i).setPosition(i);
         }
 
-        applicationEventPublisher.publishEvent(new TaskDeletedEvent(boardId, categoryId, id));
+        long revision = boardRevisionService.incrementRevision(boardId);
+        applicationEventPublisher.publishEvent(new TaskDeletedEvent(boardId, revision, categoryId, id));
     }
 }

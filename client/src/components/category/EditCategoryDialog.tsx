@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import DialogTitleAndClose from "../shared/DialogTitleAndClose";
 import { removeCategoryForDelete } from "../../utils/categoryDeleting";
 import SaveAndCancelButtons from "../shared/SaveAndCancelButtons";
+import { ApiErrorCode } from "../../api/ApiError";
 
 
 type EditCategoryDialogProps = {
@@ -71,7 +72,10 @@ export default function EditCategoryDialog(
         })
       });
     } catch (err) {
-      handleError(err);
+      // Another user may have deleted the category first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.CATEGORY_NOT_FOUND ]
+      });
     }
     close();
   }
@@ -87,7 +91,10 @@ export default function EditCategoryDialog(
       });
       setCategories((current) => removeCategoryForDelete(category.id, current));
     } catch (err) {
-      handleError(err);
+      // Another user may have deleted the category first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.CATEGORY_NOT_FOUND ]
+      });
     }
 
     close();

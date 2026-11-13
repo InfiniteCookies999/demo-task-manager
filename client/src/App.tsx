@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "./api/apiFetch";
-import { AppContext } from "./contexts/AppContext";
+import { AppContext, type HandleErrorOptions } from "./contexts/AppContext";
 import type { User } from "./types/user";
 import Board from "./components/board/Board";
 import BoardRoute from "./components/board/BoardRoute";
 import { Route, Routes } from "react-router-dom";
 import { UserContext } from "./contexts/UserContext";
 import ErrorAlert from "./components/shared/ErrorAlert";
+import { ApiError } from "./api/ApiError";
 
 
 type AuthenicatedAppProps = {
@@ -43,7 +44,10 @@ function App() {
   const [ user, setUser ] = useState<User | null>(null);
   const [error, setError] = useState("");
 
-  const handleError = useCallback((err: unknown) => {
+  const handleError = useCallback((err: unknown, options?: HandleErrorOptions) => {
+    if (err instanceof ApiError && options?.ignore?.includes(err.code)) {
+      return;
+    }
     setError(err instanceof Error ? err.message : "An unexpected error occurred.");
   }, []);
 

@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Invite;
 import infinitecookies.task.manager.models.entity.User;
@@ -45,18 +47,28 @@ public class InviteService {
         boardService.checkHasAuthorization(userId, boardId);
 
         if (Objects.equals(userId, request.userId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot invite yourself");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST, ApiErrorCode.INVITE_CANNOT_INVITE_YOURSELF,
+                "Cannot invite yourself"
+            );
         }
 
         User invitedUser = userRepository.findById(request.userId())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.INVITE_USER_NOT_FOUND, "User not found"
+            ));
 
         if (inviteRepository.existsByInvitedUserIdAndBoardId(invitedUser.getId(), boardId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already invited");
+            throw new ApiException(
+                HttpStatus.CONFLICT, ApiErrorCode.INVITE_USER_ALREADY_INVITED, "User already invited"
+            );
         }
 
         if (boardRepository.isUserAllowed(boardId, invitedUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User is already a member of this board");
+            throw new ApiException(
+                HttpStatus.CONFLICT, ApiErrorCode.INVITE_USER_IS_ALREADY_MEMBER,
+                "User is already a member of this board"
+            );
         }
 
         Invite invite = new Invite();
@@ -79,7 +91,9 @@ public class InviteService {
         boardService.checkHasAuthorization(sessionUserId, boardId);
 
         Board board = boardRepository.findById(boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.BOARD_NOT_FOUND, "Board not found"
+            ));
 
         Set<Long> allowedUserIds = board.getAllowedUsers().stream()
             .map(User::getId)
@@ -111,7 +125,9 @@ public class InviteService {
     public void acceptInvite(Long userId, Long id) {
 
         Invite invite = inviteRepository.findByIdAndInvitedUserId(id, userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.INVITE_NOT_FOUND, "Invite not found"
+            ));
 
         invite.getBoard().getAllowedUsers().add(invite.getInvitedUser());
 
@@ -122,7 +138,9 @@ public class InviteService {
     public void deleteInvite(Long userId, Long id) {
 
         Invite invite = inviteRepository.findByIdAndInvitedUserId(id, userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.INVITE_NOT_FOUND, "Invite not found"
+            ));
 
         inviteRepository.delete(invite);
     }

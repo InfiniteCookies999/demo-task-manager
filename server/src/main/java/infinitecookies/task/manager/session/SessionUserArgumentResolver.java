@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.session;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.jspecify.annotations.NonNull;
@@ -34,7 +36,11 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
         Object userId = session == null ? null : session.getAttribute("userId");
 
         if (!(userId instanceof Long id)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User session not initialized");
+            throw new ApiException(
+                HttpStatus.UNAUTHORIZED,
+                ApiErrorCode.USER_SESSION_NOT_INITIALIZED,
+                "User session not initialized"
+            );
         }
 
         return new SessionUser(id);

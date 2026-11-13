@@ -30,6 +30,25 @@ export default function Board({ boardId }: BoardProps) {
   const bufferedEvents = useRef<BoardEvent[]>([]);
   const isBufferingEvents = useRef(true);
 
+  // The revision number that the HTTP response provides when downloading the board
+  // indicates the most recent version of the state.
+  //
+  // The number can then be used to ignore out of date websocket events if the HTTP
+  // response provided a newer version of the board.
+  const boardDownloadRevision = useRef(0);
+
+  const [syncKey, setSyncKey] = useState(0);
+
+  const resynchronizeBoard = useCallback(() => {
+    console.log("The board has gone out of sync. Resyncronizing");
+
+    bufferedEvents.current = [];
+    isBufferingEvents.current = true;
+
+    setCategoriesLoaded(false);
+    setSyncKey(current => current + 1);
+  }, []);
+
   const { applyBoardEvent } = useBoardAppearenceEvents(setBoard);
 
   const handleBoardEvent = useCallback((event: BoardEvent) => {
@@ -58,6 +77,8 @@ export default function Board({ boardId }: BoardProps) {
         const boardResponse = await apiFetch(`/api/boards/${boardId}`);
         const board: Board = await boardResponse.json();
 
+        boardDownloadRevision.current = board.revision;
+
         setBoard(board);
 
         document.title = `${board.boardOwnerUsername}'s board | task-manager`;
@@ -74,9 +95,13 @@ export default function Board({ boardId }: BoardProps) {
     fetchBoard();
 
     return subscribeToBoardEvent((event: BoardEvent) => {
+      // The event is already present in the current board's state.
+      if (event.revision <= boardDownloadRevision.current) {
+        return;
+      }
       applyBoardEvent(event);
     });
-  }, [connected, boardId, setBoard, handleError, applyBoardEvent]);
+  }, [connected, boardId, setBoard, handleError, applyBoardEvent, syncKey]);
 
   // Check for when categories are reloaded and apply all the queued up buffered
   // web socket events once they are loaded in.
@@ -118,7 +143,7 @@ export default function Board({ boardId }: BoardProps) {
   }
 
   return (
-    <BoardCategoriesProvider>
+    <BoardCategoriesProvider resynchronizeBoard={resynchronizeBoard}>
       <div
         className="flex flex-col min-h-screen"
         style={{
@@ -151,6 +176,7 @@ export default function Board({ boardId }: BoardProps) {
 
         <BoardCategories
           boardId={boardId}
+          syncKey={syncKey}
           setCategoriesLoaded={setCategoriesLoaded}
         />
       </div>

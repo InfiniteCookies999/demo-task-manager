@@ -1,5 +1,8 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
+import infinitecookies.task.manager.models.dto.CategoryListResponse;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
@@ -15,7 +18,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.function.Function;
@@ -27,16 +29,19 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final BoardRepository boardRepository;
     private final BoardService boardService;
+    private final BoardRevisionService boardRevisionService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public CategoryService(CategoryRepository categoryRepository,
                            BoardRepository boardRepository,
                            BoardService boardService,
+                           BoardRevisionService boardRevisionService,
                            ApplicationEventPublisher applicationEventPublisher) {
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
+        this.boardRevisionService = boardRevisionService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -47,8 +52,9 @@ public class CategoryService {
         long nextPosition = categoryRepository.countByBoardId(boardId);
 
         if (nextPosition >= Board.MAX_CATEGORIES) {
-            throw new ResponseStatusException(
+            throw new ApiException(
                 HttpStatus.CONFLICT,
+                ApiErrorCode.CATEGORY_LIMIT_EXCEEDED,
                 "A board cannot have more than " + Board.MAX_CATEGORIES + " categories"
             );
         }
@@ -58,20 +64,24 @@ public class CategoryService {
         category.setPosition((int) nextPosition);
         categoryRepository.save(category);
 
+        long revision = boardRevisionService.incrementRevision(boardId);
         CategoryResponse response = CategoryResponse.fromCategory(category);
-
-        applicationEventPublisher.publishEvent(new CategoryCreatedEvent(boardId, response));
+        applicationEventPublisher.publishEvent(new CategoryCreatedEvent(boardId, revision, response));
 
         return response;
     }
 
-    public List<CategoryResponse> getCategories(Long userId, Long boardId) {
+    public CategoryListResponse getCategories(Long userId, Long boardId) {
         boardService.checkHasAuthorization(userId, boardId);
 
+        long revision = boardRevisionService.getRevision(boardId);
+
         List<Category> categories = categoryRepository.findAllByBoardIdOrderByPositionAsc(boardId);
-        return categories.stream()
+
+        List<CategoryResponse> responseCategories = categories.stream()
             .map(CategoryResponse::fromCategory)
             .toList();
+        return new CategoryListResponse(revision, responseCategories);
     }
 
     @Transactional
@@ -79,7 +89,9 @@ public class CategoryService {
         boardService.checkHasAuthorization(userId, boardId);
 
         Category category = categoryRepository.findByIdAndBoardId(id, boardId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.CATEGORY_NOT_FOUND, "Category not found"
+            ));
 
         if (request.name() != null) {
             category.setName(request.name());
@@ -88,8 +100,9 @@ public class CategoryService {
             category.setColor(request.color());
         }
 
+        long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(
-            new CategoryUpdatedEvent(boardId, id, request.name(), request.color()));
+            new CategoryUpdatedEvent(boardId, revision, id, request.name(), request.color()));
     }
 
     @Transactional
@@ -98,14 +111,18 @@ public class CategoryService {
 
         List<Category> categories = categoryRepository.findAllByBoardId(boardId);
         if (categories.size() != request.categoryIds().size()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Must specify the re-ordering for all categories");
+            throw new ApiException(
+                HttpStatus.NOT_FOUND, ApiErrorCode.CATEGORY_REORDER_MISSING_CATEGORY,
+                "Must specify the re-ordering for all categories"
+            );
         }
 
         // Check for duplicates.
         Set<Long> uniqueIds = new HashSet<>(request.categoryIds());
         if (uniqueIds.size() != request.categoryIds().size()) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Duplicate category IDs are not allowed");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST, ApiErrorCode.CATEGORY_DUPLICATE_ID,
+                "Duplicate category IDs are not allowed");
         }
 
         // Reorder the categories to match the request order so the positions may be updated
@@ -118,8 +135,10 @@ public class CategoryService {
             Category category = categoriesById.get(categoryId);
 
             if (category == null) {
-                throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "One or more categories not found in board");
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST, ApiErrorCode.CATEGORY_NOT_FOUND,
+                    "One or more categories not found in board"
+                );
             }
 
             orderedCategories.add(category);
@@ -130,8 +149,9 @@ public class CategoryService {
             orderedCategories.get(i).setPosition(i);
         }
 
+        long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(
-            new CategoriesReorderedEvent(boardId, request.categoryIds()));
+            new CategoriesReorderedEvent(boardId, revision, request.categoryIds()));
     }
 
     @Transactional
@@ -140,7 +160,7 @@ public class CategoryService {
 
         int deleted = categoryRepository.deleteByIdAndBoardId(id, boardId);
         if (deleted == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiErrorCode.CATEGORY_NOT_FOUND, "Category not found");
         }
         categoryRepository.flush();
 
@@ -150,6 +170,7 @@ public class CategoryService {
             categories.get(i).setPosition(i);
         }
 
-        applicationEventPublisher.publishEvent(new CategoryDeletedEvent(boardId, id));
+        long revision = boardRevisionService.incrementRevision(boardId);
+        applicationEventPublisher.publishEvent(new CategoryDeletedEvent(boardId, revision, id));
     }
 }

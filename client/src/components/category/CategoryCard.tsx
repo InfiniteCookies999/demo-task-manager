@@ -10,6 +10,7 @@ import TaskCard from "../task/TaskCard";
 import { useCategoryDrag } from "../../hooks/useCategoryDrag";
 import { useCategoryTaskDrag } from "../../hooks/useCategoryTaskDrag";
 import { useBoardCategoriesContext } from "../../contexts/BoardCategoriesContext";
+import { ApiErrorCode } from "../../api/ApiError";
 
 type CategoryCardProps = {
   category: Category;
@@ -161,7 +162,10 @@ export default function CategoryCard(
       const newTask: Task = await response.json();
       addTask(newTask);
     } catch (err) {
-      handleError(err);
+      // Another user may have created a task first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.TASK_LIMIT_EXCEEDED ]
+      });
     }
   }
 
@@ -174,8 +178,6 @@ export default function CategoryCard(
     handleDrop
   } = useCategoryDrag({
     boardId: category.boardId,
-    categories,
-    setCategories,
     draggingCategory,
     setDraggingCategory,
     setDropTargetCategoryId

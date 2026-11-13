@@ -3,12 +3,12 @@ import type { Category } from "../types/category";
 import createDragClone from "../utils/createDragClone";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
+import { ApiError, ApiErrorCode } from "../api/ApiError";
+import { useBoardCategoriesContext } from "../contexts/BoardCategoriesContext";
 
 
 type UseCategoryDragProps = {
   boardId: number;
-  categories: Category[];
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   draggingCategory: Category | null;
   setDraggingCategory: React.Dispatch<React.SetStateAction<Category | null>>;
   setDropTargetCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
@@ -18,14 +18,18 @@ type UseCategoryDragProps = {
 export function useCategoryDrag(
   {
     boardId,
-    categories,
-    setCategories,
     draggingCategory,
     setDraggingCategory,
     setDropTargetCategoryId
   }:
   UseCategoryDragProps
 ) {
+
+  const {
+    categories,
+    setCategories,
+    resynchronizeBoard
+  } = useBoardCategoriesContext();
 
   const { handleError } = useAppContext();
 
@@ -167,6 +171,15 @@ export function useCategoryDrag(
       try {
         await updateCategoryOrder(boardId, updated);
       } catch (err) {
+        // Check if the categories are likely out of sync.
+        if (err instanceof ApiError) {
+          if (err.code === ApiErrorCode.CATEGORY_REORDER_MISSING_CATEGORY ||
+              err.code === ApiErrorCode.CATEGORY_NOT_FOUND) {
+            resynchronizeBoard();
+            return;
+          }
+        }
+
         handleError(err);
       }
     },

@@ -1,7 +1,12 @@
 import { createContext, useContext } from "react";
+import type { ApiErrorCode } from "../api/ApiError";
+
+export type HandleErrorOptions = {
+  ignore?: ApiErrorCode[];
+};
 
 type AppContextType = {
-  handleError: (err: unknown) => void;
+  handleError: (err: unknown, options?: HandleErrorOptions) => void;
 };
 
 export const AppContext = createContext<AppContextType | null>(null);

@@ -8,12 +8,11 @@ import { findTaskCategoryId } from "../utils/taskFinding";
 import { reorderTasksInCategoryFromResponse } from "../utils/taskReordering";
 import { removeTaskForDelete } from "../utils/taskDeleting";
 import { useUserContext } from "../contexts/UserContext";
+import { useBoardCategoriesContext } from "../contexts/BoardCategoriesContext";
 
-export function useBoardCategoryEvents(
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>,
-  setTasksByCategory: React.Dispatch<React.SetStateAction<Record<number, Task[]>>>
-) {
+export function useBoardCategoryEvents() {
 
+  const { setCategories, setTasksByCategory } = useBoardCategoriesContext();
   const { user } = useUserContext();
 
   const addCategory = useCallback((category: Category) => {

@@ -5,6 +5,7 @@ import { apiFetch } from "../../api/apiFetch";
 import type { Category } from "../../types/category";
 import { useAppContext } from "../../contexts/AppContext";
 import { useBoardCategoryEvents } from "../../hooks/useBoardCategoryEvents";
+import { ApiErrorCode } from "../../api/ApiError";
 
 type CreateCategoryButtonProps = {
   boardId: number;
@@ -13,9 +14,9 @@ type CreateCategoryButtonProps = {
 export default function CreateCategoryButton({ boardId }: CreateCategoryButtonProps) {
 
   const { handleError } = useAppContext();
-  const { categories, setCategories, setTasksByCategory } = useBoardCategoriesContext();
+  const { categories } = useBoardCategoriesContext();
 
-  const { addCategory } = useBoardCategoryEvents(setCategories, setTasksByCategory);
+  const { addCategory } = useBoardCategoryEvents();
 
   async function createCategory() {
     try {
@@ -25,7 +26,10 @@ export default function CreateCategoryButton({ boardId }: CreateCategoryButtonPr
       const newCategory: Category = await response.json();
       addCategory(newCategory);
     } catch (err) {
-      handleError(err);
+      // Another user may have created a category first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.CATEGORY_LIMIT_EXCEEDED ]
+      });
     }
   }
 

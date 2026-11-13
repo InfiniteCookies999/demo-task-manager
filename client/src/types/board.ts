@@ -3,6 +3,7 @@ export type BackgroundType = "SOLID" | "GRADIENT";
 
 export type Board = {
   id: number;
+  revision: number;
   boardOwnerUsername: string;
   boardOwnerId: number;
   backgroundType: BackgroundType;

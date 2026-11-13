@@ -4,6 +4,8 @@ import type { Category } from "../types/category";
 import { localReorderTasksInCategory } from "../utils/taskReordering";
 import { apiFetch } from "../api/apiFetch";
 import { useAppContext } from "../contexts/AppContext";
+import { ApiError, ApiErrorCode } from "../api/ApiError";
+import { useBoardCategoriesContext } from "../contexts/BoardCategoriesContext";
 
 type UseCategoryDragProps = {
   boardId: number;
@@ -33,6 +35,8 @@ export function useCategoryTaskDrag(
   UseCategoryDragProps
 ) {
   
+  const { resynchronizeBoard } = useBoardCategoriesContext();
+
   const { handleError } = useAppContext();
 
   const clearTaskDragState = useCallback(() => {
@@ -146,6 +150,20 @@ export function useCategoryTaskDrag(
       try {
         await updateTaskOrder(boardId, targetCategoryId, updatedTargetTasks, sourceId);
       } catch (err) {
+        // Check if the tasks are likely out of sync.
+        if (err instanceof ApiError) {
+          if (err.code === ApiErrorCode.TASK_TARGET_CATEGORY_NOT_FOUND ||
+              err.code === ApiErrorCode.TASK_REORDER_MISSING_TASK ||
+              err.code === ApiErrorCode.TASK_NOT_FOUND ||
+              err.code === ApiErrorCode.TASK_LIMIT_EXCEEDED ||
+              err.code === ApiErrorCode.TASK_NEITHER_MOVED_OR_IN_TARGET_CATEGORY ||
+              err.code === ApiErrorCode.TASK_MOVED_TASK_MUST_BE_IN_DIFF_CATEGORY
+            ) {
+            resynchronizeBoard();
+            return;
+          }
+        }
+
         handleError(err);
       }
     },

@@ -11,6 +11,7 @@ import DialogTitleAndClose from "../shared/DialogTitleAndClose";
 import { removeTaskForDelete } from "../../utils/taskDeleting";
 import EditTaskAssignees from "./EditTaskAssignees";
 import SaveAndCancelButtons from "../shared/SaveAndCancelButtons";
+import { ApiErrorCode } from "../../api/ApiError";
 
 type EditTaskDialogProps = {
   boardId: number;
@@ -122,7 +123,10 @@ export default function EditTaskDialog(
         body: JSON.stringify(request)
       });
     } catch (err) {
-      handleError(err);
+      // Another user may have deleted the task first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.TASK_NOT_FOUND ]
+      });
     }
 
     close();
@@ -139,14 +143,15 @@ export default function EditTaskDialog(
       });
       setTasksByCategory((current) => removeTaskForDelete(task.id, task.categoryId, current));
     } catch (err) {
-      handleError(err);
+      // Another user may have deleted the task first in which case we can ignore the error.
+      handleError(err, {
+        ignore: [ ApiErrorCode.TASK_NOT_FOUND ]
+      });
     }
 
     close();
   }
 
-  // TODO (maddie): need to put a character limit on the description. because it may be too
-  // difficult to enforce in the text box itself it could go as a check when save is pressed.
   return createPortal(
     <dialog
       ref={dialogRef}

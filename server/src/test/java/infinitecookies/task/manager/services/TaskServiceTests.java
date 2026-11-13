@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.dto.*;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Category;
@@ -55,12 +57,16 @@ public class TaskServiceTests {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private BoardRevisionService boardRevisionService;
+
     private TaskService taskService;
 
     @BeforeEach
     void setUp() {
         // Manually setup mocks to test authorization at the boardService level.
         BoardService boardService = new BoardService(
+            boardRevisionService,
             boardRepository,
             applicationEventPublisher
         );
@@ -71,6 +77,7 @@ public class TaskServiceTests {
             boardRepository,
             userRepository,
             boardService,
+            boardRevisionService,
             applicationEventPublisher
         );
     }
@@ -81,11 +88,11 @@ public class TaskServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         CreateTaskRequest request = mock(CreateTaskRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.createTask(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.createTask(1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).save(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -98,11 +105,11 @@ public class TaskServiceTests {
         when(categoryRepository.findByIdAndBoardId(1L, 1L)).thenReturn(Optional.of(category));
 
         CreateTaskRequest request = new CreateTaskRequest(1L, "New Task");
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.createTask(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.createTask(1L, 1L, request));
 
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
         verify(taskRepository, never()).save(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -145,8 +152,7 @@ public class TaskServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.getTasks(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.getTasks(1L, 1L));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
     }
@@ -157,11 +163,11 @@ public class TaskServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         TaskUpdateRequest request = mock(TaskUpdateRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.updateTask(1L, 1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.updateTask(1L, 1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -187,10 +193,10 @@ public class TaskServiceTests {
         TaskUpdateRequest request = new TaskUpdateRequest(
             null, null, null, assignedUserIds
         );
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.updateTask(1L, 1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.updateTask(1L, 1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -284,11 +290,11 @@ public class TaskServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         TaskReorderRequest request = mock(TaskReorderRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).findByIdInAndCategoryBoardId(any(), any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -304,15 +310,15 @@ public class TaskServiceTests {
         when(categoryRepository.findByIdAndBoardId(targetCategoryId, 1L)).thenReturn(Optional.empty());
 
         TaskReorderRequest request = new TaskReorderRequest(targetCategoryId, List.of(), null);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
-        assertEquals("Target category not found", e.getReason());
+        assertEquals(ApiErrorCode.TASK_TARGET_CATEGORY_NOT_FOUND, e.getCode());
 
         verify(taskRepository, never()).findByIdInAndCategoryBoardId(any(), any());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -340,13 +346,13 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, List.of(1L, 2L), null);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
-        assertEquals("One or more tasks not found", e.getReason());
+        assertEquals(ApiErrorCode.TASK_NOT_FOUND, e.getCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -382,12 +388,12 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, taskIds, null);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -408,13 +414,13 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, List.of(1L, 2L, 2L), null);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Duplicate task IDs are not allowed", e.getReason());
+        assertEquals(ApiErrorCode.TASK_DUPLICATE_ID, e.getCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -446,13 +452,13 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, taskIds, null);
 
-        ResponseStatusException e = assertThrows(
-            ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Task neither the moved task or in target category", e.getReason());
+        assertEquals(ApiErrorCode.TASK_NEITHER_MOVED_OR_IN_TARGET_CATEGORY, e.getCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -489,13 +495,14 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, taskIds, movedTask.getId());
 
-        ResponseStatusException e = assertThrows(
-            ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(
+            ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Moved task should be in taskIds", e.getReason());
+        assertEquals(ApiErrorCode.TASK_MOVED_TASK_SHOULD_BE_IN_TASK_IDS, e.getCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -524,13 +531,13 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, taskIds, movedTask.getId());
 
-        ResponseStatusException e = assertThrows(
-            ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Moved task must belong to a different category", e.getReason());
+        assertEquals(ApiErrorCode.TASK_MOVED_TASK_MUST_BE_IN_DIFF_CATEGORY, e.getCode());
 
         verify(taskRepository, never()).countByCategoryId(targetCategoryId);
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -561,12 +568,12 @@ public class TaskServiceTests {
         TaskReorderRequest request =
             new TaskReorderRequest(targetCategoryId, taskIds, null);
 
-        ResponseStatusException e = assertThrows(
-            ResponseStatusException.class, () -> taskService.reorderTasks(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.reorderTasks(1L, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-        assertEquals("Must specify the re-ordering for all tasks", e.getReason());
+        assertEquals(ApiErrorCode.TASK_REORDER_MISSING_TASK, e.getCode());
 
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -688,11 +695,11 @@ public class TaskServiceTests {
     void deleteTaskLacksAuthorization() {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.deleteTask(1L, 1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.deleteTask(1L, 1L, 1L));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).delete(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -701,11 +708,11 @@ public class TaskServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.deleteTask(1L, 1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> taskService.deleteTask(1L, 1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(taskRepository, never()).delete(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -759,8 +766,8 @@ public class TaskServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
+        ApiException e =
+            assertThrows(ApiException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
@@ -772,8 +779,8 @@ public class TaskServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(taskRepository.findByIdAndCategoryBoardId(1L, 1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
+        ApiException e =
+            assertThrows(ApiException.class, () -> taskService.searchAssignees(1L, 1L, 1L, "searchUsername"));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(userRepository, never()).searchAssignees(any(), any(), any(), any());

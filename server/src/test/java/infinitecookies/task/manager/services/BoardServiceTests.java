@@ -1,5 +1,6 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.BackgroundType;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.dto.BoardBackgroundUpdateRequest;
@@ -29,6 +30,9 @@ public class BoardServiceTests {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private BoardRevisionService boardRevisionService;
+
     @InjectMocks
     private BoardService boardService;
 
@@ -38,11 +42,12 @@ public class BoardServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         BoardBackgroundUpdateRequest request = mock(BoardBackgroundUpdateRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> boardService.updateBoardBackground(1L, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> boardService.updateBoardBackground(1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(boardRepository, never()).findById(any());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -53,10 +58,11 @@ public class BoardServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(boardRepository.findById(1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+        ApiException e = assertThrows(ApiException.class,
             () -> boardService.updateBoardBackground(1L, 1L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+        verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
@@ -89,8 +95,7 @@ public class BoardServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(true);
         when(boardRepository.findById(1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class,
-            () -> boardService.getBoard(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> boardService.getBoard(1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
     }

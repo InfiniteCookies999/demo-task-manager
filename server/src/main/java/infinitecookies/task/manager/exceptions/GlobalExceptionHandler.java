@@ -10,17 +10,17 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleResponseStatusException(
-        ResponseStatusException exception) {
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, String>> handleApiException(
+        ApiException exception) {
 
         // TODO (maddie): we should log these exceptions.
 
         return ResponseEntity
             .status(exception.getStatusCode())
-            .body(Map.of("message", exception.getReason() != null
-                ? exception.getReason()
-                : "Request failed"
+            .body(Map.of(
+                "message", exception.getMessage(),
+                "code", exception.getCode().name()
             ));
     }
 }

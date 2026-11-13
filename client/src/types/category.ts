@@ -41,3 +41,8 @@ export type Category = {
   color: CategoryColor;
   position: number;
 };
+
+export type CategoryListResponse = {
+  revision: number;
+  categories: Category[];
+};

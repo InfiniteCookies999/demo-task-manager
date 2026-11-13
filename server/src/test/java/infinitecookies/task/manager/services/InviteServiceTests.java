@@ -1,5 +1,7 @@
 package infinitecookies.task.manager.services;
 
+import infinitecookies.task.manager.exceptions.ApiErrorCode;
+import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.dto.SendInviteRequest;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.models.entity.Board;
@@ -42,12 +44,16 @@ public class InviteServiceTests {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private BoardRevisionService boardRevisionService;
+
     private InviteService inviteService;
 
     @BeforeEach
     void setUp() {
         // Manually setup mocks to test authorization at the boardService level.
         BoardService boardService = new BoardService(
+            boardRevisionService,
             boardRepository,
             applicationEventPublisher
         );
@@ -66,8 +72,7 @@ public class InviteServiceTests {
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
         SendInviteRequest request = mock(SendInviteRequest.class);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.createSentInvite(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> inviteService.createSentInvite(1L, 1L, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(inviteRepository, never()).save(any());
@@ -81,8 +86,8 @@ public class InviteServiceTests {
         when(boardRepository.isUserAllowed(1L, userId)).thenReturn(true);
 
         SendInviteRequest request = new SendInviteRequest(userId);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.createSentInvite(userId, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> inviteService.createSentInvite(userId, 1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
         verify(inviteRepository, never()).save(any());
@@ -95,8 +100,7 @@ public class InviteServiceTests {
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
         SendInviteRequest request = new SendInviteRequest(2L);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.createSentInvite(1L, 1L, request));
+        ApiException e = assertThrows(ApiException.class, () -> inviteService.createSentInvite(1L, 1L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).save(any());
@@ -115,11 +119,11 @@ public class InviteServiceTests {
         when(inviteRepository.existsByInvitedUserIdAndBoardId(invitedUserId, 1L)).thenReturn(true);
 
         SendInviteRequest request = new SendInviteRequest(invitedUserId);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.createSentInvite(1L, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> inviteService.createSentInvite(1L, 1L, request));
 
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
-        assertEquals("User already invited", e.getReason());
+        assertEquals(ApiErrorCode.INVITE_USER_ALREADY_INVITED, e.getCode());
         verify(inviteRepository, never()).save(any());
     }
 
@@ -137,11 +141,11 @@ public class InviteServiceTests {
         when(boardRepository.isUserAllowed(1L, invitedUserId)).thenReturn(true);
 
         SendInviteRequest request = new SendInviteRequest(invitedUserId);
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.createSentInvite(1L, 1L, request));
+        ApiException e =
+            assertThrows(ApiException.class, () -> inviteService.createSentInvite(1L, 1L, request));
 
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
-        assertEquals("User is already a member of this board", e.getReason());
+        assertEquals(ApiErrorCode.INVITE_USER_IS_ALREADY_MEMBER, e.getCode());
         verify(inviteRepository, never()).save(any());
     }
 
@@ -186,8 +190,7 @@ public class InviteServiceTests {
 
         when(boardRepository.isUserAllowed(1L, 1L)).thenReturn(false);
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.searchUsers(1L, 1L, "guest"));
+        ApiException e = assertThrows(ApiException.class, () -> inviteService.searchUsers(1L, 1L, "guest"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         verify(boardRepository, never()).findById(any());
@@ -257,8 +260,7 @@ public class InviteServiceTests {
 
         when(inviteRepository.findByIdAndInvitedUserId(1L, 1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.acceptInvite(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> inviteService.acceptInvite(1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).delete(any());
@@ -290,8 +292,7 @@ public class InviteServiceTests {
 
         when(inviteRepository.findByIdAndInvitedUserId(1L, 1L)).thenReturn(Optional.empty());
 
-        ResponseStatusException e =
-            assertThrows(ResponseStatusException.class, () -> inviteService.deleteInvite(1L, 1L));
+        ApiException e = assertThrows(ApiException.class, () -> inviteService.deleteInvite(1L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).delete(any());

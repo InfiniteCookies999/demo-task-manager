@@ -1,5 +1,6 @@
 package infinitecookies.task.manager.controllers;
 
+import infinitecookies.task.manager.models.dto.CategoryListResponse;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
 import infinitecookies.task.manager.models.dto.CategoryResponse;
 import infinitecookies.task.manager.models.dto.CategoryUpdateRequest;
@@ -40,7 +41,7 @@ public class CategoriesController {
     }
 
     @GetMapping
-    public List<CategoryResponse> getCategories(@PathVariable Long boardId, SessionUser sessionUser) {
+    public CategoryListResponse getCategories(@PathVariable Long boardId, SessionUser sessionUser) {
         return service.getCategories(sessionUser.id(), boardId);
     }
 

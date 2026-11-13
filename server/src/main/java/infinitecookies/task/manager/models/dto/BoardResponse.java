@@ -5,6 +5,7 @@ import infinitecookies.task.manager.models.entity.Board;
 
 public record BoardResponse(
     Long id,
+    long revision,
     String boardOwnerUsername,
     Long boardOwnerId,
     BackgroundType backgroundType,
@@ -12,9 +13,10 @@ public record BoardResponse(
     String backgroundGradientStartColor,
     String backgroundGradientEndColor
 ) {
-    public static BoardResponse fromBoard(Board board) {
+    public static BoardResponse fromBoard(Board board, long revision) {
         return new BoardResponse(
             board.getId(),
+            revision,
             board.getOwner().getUsername(),
             board.getOwner().getId(),
             board.getBackgroundType(),
