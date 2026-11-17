@@ -35,27 +35,19 @@ public class TaskRepositoryTests {
     @Test
     void findAllAssigneesByIdAndBoardIdReturnsUsersOrderedByUsername() {
 
+        User creator = createUser();
+
         Board creatorBoard = new Board();
+        creatorBoard.setOwner(creator);
         entityManager.persist(creatorBoard);
-
-        Board user1Board = new Board();
-        entityManager.persist(user1Board);
-
-        Board user2Board = new Board();
-        entityManager.persist(user2Board);
-
-        Board user3Board = new Board();
-        entityManager.persist(user3Board);
-
-        User creator = createUser(creatorBoard);
 
         Category category = createCategory(creatorBoard);
 
         Task task = createTask(creator, category, 1);
 
-        User user1 = createUser(user1Board, "zuser", "session1");
-        User user2 = createUser(user2Board, "auser", "session2");
-        User user3 = createUser(user3Board, "buser", "session3");
+        User user1 = createUser("zuser", "session1");
+        User user2 = createUser("auser", "session2");
+        User user3 = createUser("buser", "session3");
 
         task.getAssignees().add(user1);
         task.getAssignees().add(user2);
@@ -78,20 +70,19 @@ public class TaskRepositoryTests {
     @Test
     void findTasksByBoardIdReturnsCorrectProjections() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
+        User creator = createUser();
+        User assignedUser = createUser("assignedUser", "session1");
+        User unassignedUser = createUser("unassignedUser", "session2");
 
-        Board board2 = new Board();
-        entityManager.persist(board2);
+        Board creatorBoard = new Board();
+        creatorBoard.setOwner(creator);
+        entityManager.persist(creatorBoard);
 
-        Board board3 = new Board();
-        entityManager.persist(board3);
+        Board otherBoard = new Board();
+        otherBoard.setOwner(unassignedUser);
+        entityManager.persist(otherBoard);
 
-        User creator = createUser(board1);
-        User assignedUser = createUser(board2, "assignedUser", "session1");
-        User unassignedUser = createUser(board3, "unassignedUser", "session2");
-
-        Category category = createCategory(board1);
+        Category category = createCategory(creatorBoard);
 
         Task task1 = createTask(creator, category, 1);
         task1.setPosition(2);
@@ -107,14 +98,14 @@ public class TaskRepositoryTests {
         task3.setPosition(1);
 
         // Task belonging to another board should not be returned.
-        Category otherCategory = createCategory(board2);
+        Category otherCategory = createCategory(otherBoard);
         Task otherTask = createTask(creator, otherCategory, 1);
         otherTask.getAssignees().add(assignedUser);
 
         entityManager.flush();
         entityManager.clear();
 
-        List<TaskProjection> result = taskRepository.findTasksByBoardId(assignedUser.getId(), board1.getId());
+        List<TaskProjection> result = taskRepository.findTasksByBoardId(assignedUser.getId(), creatorBoard.getId());
 
         assertEquals(3, result.size());
 
@@ -141,23 +132,21 @@ public class TaskRepositoryTests {
         assertFalse(projection3.getAssignedToYou());
     }
 
-    private User createUser(Board board) {
+    private User createUser() {
 
         User user = new User();
         user.setUsername("testUser");
         user.setSessionId("testSession");
-        user.setOwnedBoard(board);
         entityManager.persist(user);
 
         return user;
     }
 
-    private User createUser(Board board, String username, String sessionId) {
+    private User createUser(String username, String sessionId) {
 
         User user = new User();
         user.setUsername(username);
         user.setSessionId(sessionId);
-        user.setOwnedBoard(board);
         entityManager.persist(user);
 
         return user;

@@ -24,13 +24,13 @@ export interface MaxLengthConfig {
 }
 
 export const MaxLengthExtension = defineExtension({
-  build: (editor, config) => namedSignals(config),
+  build: (_editor, config) => namedSignals(config),
   config: safeCast<MaxLengthConfig>({
     disabled: true,
     maxLength: 30,
   }),
   name: '@lexical/playground/MaxLength',
-  register: (editor, config, state) =>
+  register: (editor, _config, state) =>
     effect(() => {
       const output = state.getOutput();
       if (output.disabled.value) {

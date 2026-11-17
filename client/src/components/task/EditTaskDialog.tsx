@@ -1,7 +1,6 @@
 import { SquarePen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task, TaskAssignee } from "../../types/task";
-import RichTexEditor from "../editor/RichTextEditor";
 import type { SerializedEditorState } from "lexical";
 import DeleteCollapsable from "../shared/DeleteCollapsable";
 import { useAppContext } from "../../contexts/AppContext";
@@ -12,6 +11,7 @@ import { removeTaskForDelete } from "../../utils/taskDeleting";
 import EditTaskAssignees from "./EditTaskAssignees";
 import SaveAndCancelButtons from "../shared/SaveAndCancelButtons";
 import { ApiErrorCode } from "../../api/ApiError";
+import RichTexEditor from "../editor/RichTextEditor";
 
 type EditTaskDialogProps = {
   boardId: number;

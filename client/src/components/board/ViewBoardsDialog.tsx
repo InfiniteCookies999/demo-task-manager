@@ -72,6 +72,7 @@ export default function ViewBoardsDialog({ onClose }: ViewBoardsDialogProps) {
               className="w-fit text-lg rounded-lg border border-zinc-200 bg-zinc-300 px-4 py-2
                          hover:bg-sky-200 cursor-pointer"
               onClick={() => {
+                close();
                 Navigate(`/boards/${board.id}`);
               }}
             >

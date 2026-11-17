@@ -22,8 +22,8 @@ public class Board {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(mappedBy = "ownedBoard")
-    @JoinColumn(name = "owner_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false, unique = true)
     private User owner;
 
     @ManyToMany

@@ -40,7 +40,6 @@ export default function Board({ boardId }: BoardProps) {
   const [syncKey, setSyncKey] = useState(0);
 
   const resynchronizeBoard = useCallback(() => {
-    console.log("The board has gone out of sync. Resyncronizing");
 
     bufferedEvents.current = [];
     isBufferingEvents.current = true;

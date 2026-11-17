@@ -40,7 +40,7 @@ public class Task {
     private boolean completed = false;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "created_by_user", nullable = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdByUser;
 
     @ManyToMany

@@ -36,6 +36,9 @@ dependencies {
 	implementation(platform("me.paulschwarz:spring-dotenv-bom:5.1.0"))
 	developmentOnly("me.paulschwarz:springboot3-dotenv")
 
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
 	// Using postgres test container over H2 because H2 cannot seem to properly work
 	// with JSONB.
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")

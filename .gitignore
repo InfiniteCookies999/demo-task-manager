@@ -53,3 +53,6 @@ client/*.local
 
 # .env
 **/.env
+
+# React bundle analysis
+client/stats.html

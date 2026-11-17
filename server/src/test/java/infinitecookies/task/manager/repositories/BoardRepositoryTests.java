@@ -38,10 +38,10 @@ public class BoardRepositoryTests {
         User user = new User();
         user.setSessionId("3442123");
         user.setUsername("testUser");
-        user.setOwnedBoard(board);
 
         entityManager.persist(user);
 
+        board.setOwner(user);
         board.setAllowedUsers(Set.of(user));
         entityManager.persist(board);
 
@@ -53,18 +53,24 @@ public class BoardRepositoryTests {
     @Test
     void isUserAllowedForNotAllowedUser() {
 
-        Board board = new Board();
-        Board otherBoard = new Board();
-
         User user = new User();
         user.setSessionId("3442123");
         user.setUsername("testUser");
-        user.setOwnedBoard(board);
+
+        User otherUser = new User();
+        otherUser.setSessionId("7346421");
+        otherUser.setUsername("otherUser");
 
         entityManager.persist(user);
+        entityManager.persist(otherUser);
 
+        Board board = new Board();
+        board.setOwner(user);
         board.setAllowedUsers(Set.of(user));
         entityManager.persist(board);
+
+        Board otherBoard = new Board();
+        otherBoard.setOwner(otherUser);
         entityManager.persist(otherBoard);
 
         entityManager.flush();

@@ -9,5 +9,6 @@ export default function BoardRoute() {
     return <p>Invalid board ID.</p>;
   }
 
-  return <Board boardId={Number(boardId)} />
+  // Making sure to set the key so we get a full remount of the board to prevent stale state.
+  return <Board key={Number(boardId)} boardId={Number(boardId)} />
 }

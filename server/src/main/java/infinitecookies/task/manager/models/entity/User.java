@@ -27,10 +27,6 @@ public class User {
     @Size(min = MIN_USERNAME_LENGTH, max = MAX_USERNAME_LENGTH)
     private String username;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.REMOVE }, orphanRemoval = true)
-    @JoinColumn(name = "default_board_id", nullable = false)
-    private Board ownedBoard;
-
     @OneToMany(mappedBy = "createdByUser", cascade = { CascadeType.REMOVE }, orphanRemoval = true)
     private List<Task> createdTasks;
 

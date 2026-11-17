@@ -44,6 +44,7 @@ public class BoardService {
         }
     }
 
+    @Transactional(readOnly = true)
     public List<BoardResponse> getBoards(Long userId) {
         // Note: Retrieving boards is for the purpose of determining which
         //       boards a user has so revision numbers are unimportant here.
@@ -52,6 +53,7 @@ public class BoardService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
     public BoardResponse getBoard(Long userId, Long boardId) {
         checkHasAuthorization(userId, boardId);
 

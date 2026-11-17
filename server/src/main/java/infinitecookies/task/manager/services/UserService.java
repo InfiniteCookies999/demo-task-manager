@@ -4,6 +4,7 @@ import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.ChangeUsernameRequest;
 import infinitecookies.task.manager.models.dto.UserAccountResponse;
+import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -15,15 +16,17 @@ import java.util.Set;
 public class UserService {
 
     private final UserRepository repository;
+    private final BoardRepository boardRepository;
 
-    public UserService(UserRepository repository) {
+    public UserService(UserRepository repository, BoardRepository boardRepository) {
         this.repository = repository;
+        this.boardRepository = boardRepository;
     }
 
     @Transactional
     public UserAccountResponse getOrCreateAccount(String sessionId) {
         return repository.findBySessionId(sessionId)
-            .map(UserAccountResponse::fromUser)
+            .map(this::getExistingUserAccount)
             .orElseGet(() -> createOrRetrieve(sessionId));
     }
 
@@ -42,9 +45,15 @@ public class UserService {
             return createGuestAccount(sessionId);
         } catch (DataIntegrityViolationException e) {
             return repository.findBySessionId(sessionId)
-                .map(UserAccountResponse::fromUser)
+                .map(this::getExistingUserAccount)
                 .orElseThrow(() -> e);
         }
+    }
+
+    private UserAccountResponse getExistingUserAccount(User user) {
+        Board board = boardRepository.findByOwnerId(user.getId())
+            .orElseThrow(() -> new IllegalStateException("Every user is expected to have a board"));
+        return UserAccountResponse.fromUser(user, board.getId());
     }
 
     private UserAccountResponse createGuestAccount(String sessionId) {
@@ -53,13 +62,14 @@ public class UserService {
         user.setSessionId(sessionId);
         user.setUsername("guest");
 
+        user = repository.save(user);
+
         // Create a default board so the user can start interacting right away.
         Board ownedBoard = new Board();
         ownedBoard.setOwner(user);
         ownedBoard.setAllowedUsers(Set.of(user));
-        user.setOwnedBoard(ownedBoard);
+        boardRepository.save(ownedBoard);
 
-        user = repository.save(user);
-        return UserAccountResponse.fromUser(user);
+        return UserAccountResponse.fromUser(user, ownedBoard.getId());
     }
 }

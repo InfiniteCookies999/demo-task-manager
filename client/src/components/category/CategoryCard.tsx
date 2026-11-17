@@ -123,7 +123,6 @@ export default function CategoryCard(
   const { handleError } = useAppContext();
 
   const {
-    categories,
     setCategories,
     tasksByCategory,
     setTasksByCategory,

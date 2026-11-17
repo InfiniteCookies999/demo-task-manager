@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "./api/apiFetch";
 import { AppContext, type HandleErrorOptions } from "./contexts/AppContext";
 import type { User } from "./types/user";
-import Board from "./components/board/Board";
 import BoardRoute from "./components/board/BoardRoute";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { UserContext } from "./contexts/UserContext";
 import ErrorAlert from "./components/shared/ErrorAlert";
 import { ApiError } from "./api/ApiError";
@@ -27,7 +26,8 @@ function AuthenicatedApp({ user, setUser }: AuthenicatedAppProps) {
         <Route
           path="*"
           element={
-            <Board boardId={user.ownedBoardId} />
+            // Navigate to the user's board.
+            <Navigate to={`/boards/${user.ownedBoardId}`} replace />
           }
         />
         <Route

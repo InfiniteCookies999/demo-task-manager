@@ -35,29 +35,23 @@ public class UserRepositoryTests {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BoardRepository boardRepository;
+
     @Test
     void searchAssigneesByOnlyUsername() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
+        User user1 = createUser("testZebra");
+        User user2 = createUser("testApple");
+        User user3 = createUser("testBanana");
+        User user4 = createUser("tesNotFound");
 
-        Board board2 = new Board();
-        entityManager.persist(board2);
+        Board board = new Board();
+        board.setOwner(user1);
+        board.setAllowedUsers(Set.of(user1, user2, user3, user4));
+        entityManager.persist(board);
 
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        User user1 = createUser(board1, "testZebra");
-        User user2 = createUser(board2, "testApple");
-        User user3 = createUser(board3, "testBanana");
-        User user4 = createUser(board4, "tesNotFound");
-
-        board1.setAllowedUsers(Set.of(user1, user2, user3, user4));
-
-        Long boardId = board1.getId();
+        Long boardId = board.getId();
         List<String> expected = List.of(
             user2.getUsername(),
             user3.getUsername(),
@@ -80,27 +74,18 @@ public class UserRepositoryTests {
     @Test
     void searchAssigneesByOnlyId() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
+        User user1 = createUser("testUserA");
+        User user2 = createUser("testUserB");
+        User user3 = createUser("testUserC");
 
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        User user1 = createUser(board1, "testUserA");
-        User user2 = createUser(board2, "testUserB");
-        User user3 = createUser(board3, "testUserC");
-
-        board1.setAllowedUsers(Set.of(user1, user2, user3));
+        Board board = new Board();
+        board.setOwner(user1);
+        board.setAllowedUsers(Set.of(user1, user2, user3));
+        entityManager.persist(board);
 
         entityManager.flush();
 
-        Long boardId = board1.getId();
+        Long boardId = board.getId();
         List<Long> expected = List.of(user2.getId());
 
         Long idSearch = user2.getId();
@@ -120,30 +105,21 @@ public class UserRepositoryTests {
     @Test
     void searchAssigneesByUsernameAndId() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
-
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        User user1 = createUser(board1, "testUserB");
-        User user2 = createUser(board2, "testUserA");
-        User user3 = createUser(board3, "testUserC");
+        User user1 = createUser("testUserB");
+        User user2 = createUser("testUserA");
+        User user3 = createUser("testUserC");
 
         String searchIdString = user1.getId().toString().substring(0, 1);
         Long searchId = Long.parseLong(searchIdString);
 
-        board1.setAllowedUsers(Set.of(user1, user2, user3));
+        Board board = new Board();
+        board.setOwner(user1);
+        board.setAllowedUsers(Set.of(user1, user2, user3));
+        entityManager.persist(board);
 
         entityManager.flush();
 
-        Long boardId = board1.getId();
+        Long boardId = board.getId();
 
         // We cannot know beforehand what the database IDs will be and so
         // since the search uses a LIKE we must also check if any of the
@@ -172,24 +148,18 @@ public class UserRepositoryTests {
     @Test
     void searchAssigneesShouldBeCaseInsensitive() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
+        User user1 = createUser("TestUser");
+        User user2 = createUser("TESTUSER");
+        User user3 = createUser("OtherUser");
 
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        User user1 = createUser(board1, "TestUser");
-        User user2 = createUser(board2, "TESTUSER");
-        User user3 = createUser(board3, "OtherUser");
-
-        board1.setAllowedUsers(Set.of(user1, user2, user3));
+        Board board = new Board();
+        board.setOwner(user1);
+        board.setAllowedUsers(Set.of(user1, user2, user3));
+        entityManager.persist(board);
 
         entityManager.flush();
 
-        Long boardId = board1.getId();
+        Long boardId = board.getId();
 
         List<String> expected = Stream.of(user1, user2)
             .sorted(Comparator.comparing(User::getId))
@@ -217,15 +187,13 @@ public class UserRepositoryTests {
     void searchAssigneesReturnsAtMost10Results() {
 
         Set<User> users = IntStream.range(0, 14)
-            .mapToObj(i -> {
-                Board board = new Board();
-                entityManager.persist(board);
-                return createUser(board, "testUser" + i);
-            })
+            .mapToObj(i -> createUser("testUser" + i))
             .collect(Collectors.toSet());
 
-        Board board = users.stream().findFirst().orElseThrow().getOwnedBoard();
+        Board board = new Board();
+        board.setOwner(users.stream().findFirst().orElseThrow());
         board.setAllowedUsers(users);
+        entityManager.persist(board);
 
         entityManager.flush();
         entityManager.clear();
@@ -244,22 +212,10 @@ public class UserRepositoryTests {
     @Test
     void searchUsersForInviteByOnlyUsername() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
-
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        User user1 = createUser(board1, "testZebra");
-        User user2 = createUser(board2, "testApple");
-        User user3 = createUser(board3, "testBanana");
-        createUser(board4, "tesNotFound");
+        User user1 = createUser("testZebra");
+        User user2 = createUser("testApple");
+        User user3 = createUser("testBanana");
+        createUser("tesNotFound");
 
         List<String> expected = List.of(
             user2.getUsername(),
@@ -283,21 +239,9 @@ public class UserRepositoryTests {
     @Test
     void searchForInviteByOnlyId() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
-
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        createUser(board1, "testUserA");
-        User user2 = createUser(board2, "testUserB");
-        createUser(board3, "testUserC");
+        createUser("testUserA");
+        User user2 = createUser("testUserB");
+        createUser("testUserC");
 
         entityManager.flush();
 
@@ -320,21 +264,9 @@ public class UserRepositoryTests {
     @Test
     void searchForInviteByUsernameAndId() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
-
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        Board board4 = new Board();
-        entityManager.persist(board4);
-
-        User user1 = createUser(board1, "testUserB");
-        User user2 = createUser(board2, "testUserA");
-        User user3 = createUser(board3, "testUserC");
+        User user1 = createUser("testUserB");
+        User user2 = createUser("testUserA");
+        User user3 = createUser("testUserC");
 
         String searchIdString = user1.getId().toString().substring(0, 1);
         Long searchId = Long.parseLong(searchIdString);
@@ -368,18 +300,9 @@ public class UserRepositoryTests {
     @Test
     void searchForInviteShouldBeCaseInsensitive() {
 
-        Board board1 = new Board();
-        entityManager.persist(board1);
-
-        Board board2 = new Board();
-        entityManager.persist(board2);
-
-        Board board3 = new Board();
-        entityManager.persist(board3);
-
-        User user1 = createUser(board1, "TestUser");
-        User user2 = createUser(board2, "TESTUSER");
-        createUser(board3, "OtherUser");
+        User user1 = createUser("TestUser");
+        User user2 = createUser("TESTUSER");
+        createUser("OtherUser");
 
         entityManager.flush();
 
@@ -408,9 +331,10 @@ public class UserRepositoryTests {
     void searchForInviteReturnsAtMost10Results() {
 
         IntStream.range(0, 14).forEach(i -> {
+            User user = createUser("testUser" + i);
             Board board = new Board();
+            board.setOwner(user);
             entityManager.persist(board);
-            createUser(board, "testUser" + i);
         });
 
         entityManager.flush();
@@ -425,12 +349,11 @@ public class UserRepositoryTests {
         assertEquals(10, result.size());
     }
 
-    private User createUser(Board board, String username) {
+    private User createUser(String username) {
 
         User user = new User();
         user.setUsername(username);
         user.setSessionId(username + "session");
-        user.setOwnedBoard(board);
         entityManager.persist(user);
 
         return user;
