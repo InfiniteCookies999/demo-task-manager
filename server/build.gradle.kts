@@ -33,7 +33,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-	implementation(platform("me.paulschwarz:spring-dotenv-bom:5.1.0"))
+	developmentOnly(platform("me.paulschwarz:spring-dotenv-bom:5.1.0"))
 	developmentOnly("me.paulschwarz:springboot3-dotenv")
 
 	implementation("org.springframework.boot:spring-boot-starter-flyway")
