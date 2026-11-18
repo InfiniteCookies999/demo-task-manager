@@ -2,6 +2,7 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.exceptions.ApiErrorCode;
 import infinitecookies.task.manager.exceptions.ApiException;
+import infinitecookies.task.manager.models.entity.ActivityLog;
 import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.entity.Task;
 import infinitecookies.task.manager.models.entity.User;
@@ -28,6 +29,7 @@ public class TaskService {
     private final CategoryRepository categoryRepository;
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final BoardService boardService;
     private final BoardRevisionService boardRevisionService;
 
@@ -37,6 +39,7 @@ public class TaskService {
                        CategoryRepository categoryRepository,
                        BoardRepository boardRepository,
                        UserRepository userRepository,
+                       ActivityLogRepository activityLogRepository,
                        BoardService boardService,
                        BoardRevisionService boardRevisionService,
                        ApplicationEventPublisher applicationEventPublisher) {
@@ -44,6 +47,7 @@ public class TaskService {
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
         this.userRepository = userRepository;
+        this.activityLogRepository = activityLogRepository;
         this.boardService = boardService;
         this.boardRevisionService = boardRevisionService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -79,6 +83,9 @@ public class TaskService {
 
         long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(new TaskCreatedEvent(boardId, revision, response));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Task Created");
+        activityLogRepository.save(activityLog);
 
         return response;
     }
@@ -367,5 +374,8 @@ public class TaskService {
 
         long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(new TaskDeletedEvent(boardId, revision, categoryId, id));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Task Deleted");
+        activityLogRepository.save(activityLog);
     }
 }

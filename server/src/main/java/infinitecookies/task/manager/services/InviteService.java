@@ -2,12 +2,14 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.exceptions.ApiErrorCode;
 import infinitecookies.task.manager.exceptions.ApiException;
+import infinitecookies.task.manager.models.entity.ActivityLog;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Invite;
 import infinitecookies.task.manager.models.entity.User;
 import infinitecookies.task.manager.models.dto.InviteResponse;
 import infinitecookies.task.manager.models.dto.SendInviteRequest;
 import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
@@ -30,15 +32,18 @@ public class InviteService {
     private final InviteRepository inviteRepository;
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final BoardService boardService;
 
     public InviteService(InviteRepository inviteRepository,
                          BoardRepository boardRepository,
                          UserRepository userRepository,
+                         ActivityLogRepository activityLogRepository,
                          BoardService boardService) {
         this.inviteRepository = inviteRepository;
         this.boardRepository = boardRepository;
         this.userRepository = userRepository;
+        this.activityLogRepository = activityLogRepository;
         this.boardService = boardService;
     }
 
@@ -77,6 +82,9 @@ public class InviteService {
         invite.setBoard(boardRepository.getReferenceById(boardId));
 
         inviteRepository.save(invite);
+
+        ActivityLog activityLog = new ActivityLog(userId, "Sent Invite");
+        activityLogRepository.save(activityLog);
     }
 
     @Transactional(readOnly = true)
@@ -133,6 +141,9 @@ public class InviteService {
 
         // The invite is no longer needed the user accepted the invite.
         inviteRepository.delete(invite);
+
+        ActivityLog activityLog = new ActivityLog(userId, "Invite Accepted");
+        activityLogRepository.save(activityLog);
     }
 
     public void deleteInvite(Long userId, Long id) {
@@ -143,5 +154,8 @@ public class InviteService {
             ));
 
         inviteRepository.delete(invite);
+
+        ActivityLog activityLog = new ActivityLog(userId, "Invite Declined");
+        activityLogRepository.save(activityLog);
     }
 }

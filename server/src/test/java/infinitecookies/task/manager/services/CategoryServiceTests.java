@@ -12,6 +12,7 @@ import infinitecookies.task.manager.models.websock.CategoriesReorderedEvent;
 import infinitecookies.task.manager.models.websock.CategoryCreatedEvent;
 import infinitecookies.task.manager.models.websock.CategoryDeletedEvent;
 import infinitecookies.task.manager.models.websock.CategoryUpdatedEvent;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,9 @@ public class CategoryServiceTests {
     private BoardRepository boardRepository;
 
     @Mock
+    private ActivityLogRepository activityLogRepository;
+
+    @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
@@ -54,12 +58,14 @@ public class CategoryServiceTests {
         BoardService boardService = new BoardService(
             boardRevisionService,
             boardRepository,
+            activityLogRepository,
             applicationEventPublisher
         );
 
         categoryService = new CategoryService(
             categoryRepository,
             boardRepository,
+            activityLogRepository,
             boardService,
             boardRevisionService,
             applicationEventPublisher
@@ -77,6 +83,7 @@ public class CategoryServiceTests {
         verify(categoryRepository, never()).save(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -91,6 +98,7 @@ public class CategoryServiceTests {
         verify(categoryRepository, never()).save(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -137,6 +145,7 @@ public class CategoryServiceTests {
         verify(categoryRepository, never()).findByIdAndBoardId(any(), any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -276,6 +285,7 @@ public class CategoryServiceTests {
         verify(categoryRepository, never()).deleteByIdAndBoardId(any(), any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -288,6 +298,7 @@ public class CategoryServiceTests {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test

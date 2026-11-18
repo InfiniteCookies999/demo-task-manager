@@ -2,17 +2,18 @@ package infinitecookies.task.manager.services;
 
 import infinitecookies.task.manager.exceptions.ApiErrorCode;
 import infinitecookies.task.manager.exceptions.ApiException;
+import infinitecookies.task.manager.models.entity.ActivityLog;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.dto.BoardResponse;
 import infinitecookies.task.manager.models.dto.BoardBackgroundUpdateRequest;
 import infinitecookies.task.manager.models.websock.BackgroundUpdatedEvent;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import jakarta.validation.Valid;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -21,22 +22,25 @@ public class BoardService {
 
     private final BoardRevisionService boardRevisionService;
 
-    private final BoardRepository repository;
+    private final BoardRepository boardRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public BoardService(
         BoardRevisionService boardRevisionService,
-        BoardRepository repository,
+        BoardRepository boardRepository,
+        ActivityLogRepository activityLogRepository,
         ApplicationEventPublisher applicationEventPublisher
     ) {
         this.boardRevisionService = boardRevisionService;
-        this.repository = repository;
+        this.boardRepository = boardRepository;
+        this.activityLogRepository = activityLogRepository;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public void checkHasAuthorization(Long userId, Long boardId) {
-        if (!repository.isUserAllowed(boardId, userId)) {
+        if (!boardRepository.isUserAllowed(boardId, userId)) {
             throw new ApiException(
                 HttpStatus.UNAUTHORIZED, ApiErrorCode.BOARD_ACCESS_NOT_AUTHORIZED,
                 "Not authorized to access board"
@@ -48,7 +52,7 @@ public class BoardService {
     public List<BoardResponse> getBoards(Long userId) {
         // Note: Retrieving boards is for the purpose of determining which
         //       boards a user has so revision numbers are unimportant here.
-        return repository.findByAllowedUsers_Id(userId).stream()
+        return boardRepository.findByAllowedUsers_Id(userId).stream()
             .map(board -> BoardResponse.fromBoard(board, -1L))
             .toList();
     }
@@ -58,7 +62,7 @@ public class BoardService {
         checkHasAuthorization(userId, boardId);
 
         long revision = boardRevisionService.getRevision(boardId);
-        Board board = repository.findById(boardId)
+        Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new ApiException(
                 HttpStatus.NOT_FOUND, ApiErrorCode.BOARD_NOT_FOUND, "Board not found"
             ));
@@ -69,7 +73,7 @@ public class BoardService {
     public void updateBoardBackground(Long userId, Long boardId, @Valid BoardBackgroundUpdateRequest request) {
         checkHasAuthorization(userId, boardId);
 
-        Board board = repository.findById(boardId)
+        Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new ApiException(
                 HttpStatus.NOT_FOUND, ApiErrorCode.BOARD_NOT_FOUND, "Board not found"
             ));
@@ -88,5 +92,8 @@ public class BoardService {
             request.backgroundGradientStartColor(),
             request.backgroundGradientEndColor()
         ));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Board Background updated");
+        activityLogRepository.save(activityLog);
     }
 }

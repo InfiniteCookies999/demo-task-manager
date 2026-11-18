@@ -54,7 +54,6 @@ export default function ManageInvitesDialog(
     }
   }
 
-  // TODO (maddie): we can only display so many at one time.
   return createPortal(
     <dialog
       ref={dialogRef}

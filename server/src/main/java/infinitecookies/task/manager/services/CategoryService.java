@@ -3,6 +3,7 @@ package infinitecookies.task.manager.services;
 import infinitecookies.task.manager.exceptions.ApiErrorCode;
 import infinitecookies.task.manager.exceptions.ApiException;
 import infinitecookies.task.manager.models.dto.CategoryListResponse;
+import infinitecookies.task.manager.models.entity.ActivityLog;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Category;
 import infinitecookies.task.manager.models.dto.CategoryReorderRequest;
@@ -12,6 +13,7 @@ import infinitecookies.task.manager.models.websock.CategoriesReorderedEvent;
 import infinitecookies.task.manager.models.websock.CategoryCreatedEvent;
 import infinitecookies.task.manager.models.websock.CategoryDeletedEvent;
 import infinitecookies.task.manager.models.websock.CategoryUpdatedEvent;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.CategoryRepository;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,6 +30,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final BoardRepository boardRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final BoardService boardService;
     private final BoardRevisionService boardRevisionService;
 
@@ -35,11 +38,13 @@ public class CategoryService {
 
     public CategoryService(CategoryRepository categoryRepository,
                            BoardRepository boardRepository,
+                           ActivityLogRepository activityLogRepository,
                            BoardService boardService,
                            BoardRevisionService boardRevisionService,
                            ApplicationEventPublisher applicationEventPublisher) {
         this.categoryRepository = categoryRepository;
         this.boardRepository = boardRepository;
+        this.activityLogRepository = activityLogRepository;
         this.boardService = boardService;
         this.boardRevisionService = boardRevisionService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -67,6 +72,9 @@ public class CategoryService {
         long revision = boardRevisionService.incrementRevision(boardId);
         CategoryResponse response = CategoryResponse.fromCategory(category);
         applicationEventPublisher.publishEvent(new CategoryCreatedEvent(boardId, revision, response));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Category Created");
+        activityLogRepository.save(activityLog);
 
         return response;
     }
@@ -103,6 +111,9 @@ public class CategoryService {
         long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(
             new CategoryUpdatedEvent(boardId, revision, id, request.name(), request.color()));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Category Updated");
+        activityLogRepository.save(activityLog);
     }
 
     @Transactional
@@ -172,5 +183,8 @@ public class CategoryService {
 
         long revision = boardRevisionService.incrementRevision(boardId);
         applicationEventPublisher.publishEvent(new CategoryDeletedEvent(boardId, revision, id));
+
+        ActivityLog activityLog = new ActivityLog(userId, "Category Deleted");
+        activityLogRepository.save(activityLog);
     }
 }

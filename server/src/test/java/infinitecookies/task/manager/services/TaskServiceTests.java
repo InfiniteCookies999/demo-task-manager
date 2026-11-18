@@ -11,10 +11,7 @@ import infinitecookies.task.manager.models.websock.TaskCreatedEvent;
 import infinitecookies.task.manager.models.websock.TaskDeletedEvent;
 import infinitecookies.task.manager.models.websock.TaskUpdatedEvent;
 import infinitecookies.task.manager.models.websock.TasksReorderedEvent;
-import infinitecookies.task.manager.repositories.BoardRepository;
-import infinitecookies.task.manager.repositories.CategoryRepository;
-import infinitecookies.task.manager.repositories.TaskRepository;
-import infinitecookies.task.manager.repositories.UserRepository;
+import infinitecookies.task.manager.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +52,9 @@ public class TaskServiceTests {
     private BoardRepository boardRepository;
 
     @Mock
+    private ActivityLogRepository activityLogRepository;
+
+    @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
@@ -68,6 +68,7 @@ public class TaskServiceTests {
         BoardService boardService = new BoardService(
             boardRevisionService,
             boardRepository,
+            activityLogRepository,
             applicationEventPublisher
         );
 
@@ -76,6 +77,7 @@ public class TaskServiceTests {
             categoryRepository,
             boardRepository,
             userRepository,
+            activityLogRepository,
             boardService,
             boardRevisionService,
             applicationEventPublisher
@@ -94,6 +96,7 @@ public class TaskServiceTests {
         verify(taskRepository, never()).save(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -111,6 +114,7 @@ public class TaskServiceTests {
         verify(taskRepository, never()).save(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -169,6 +173,7 @@ public class TaskServiceTests {
         verify(taskRepository, never()).findByIdAndCategoryBoardId(any(), any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -198,6 +203,7 @@ public class TaskServiceTests {
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -714,6 +720,7 @@ public class TaskServiceTests {
         verify(taskRepository, never()).delete(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test

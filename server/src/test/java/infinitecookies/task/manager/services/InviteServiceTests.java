@@ -7,6 +7,7 @@ import infinitecookies.task.manager.models.dto.UserInviteSearchResponse;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.entity.Invite;
 import infinitecookies.task.manager.models.entity.User;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import infinitecookies.task.manager.repositories.InviteRepository;
 import infinitecookies.task.manager.repositories.UserRepository;
@@ -42,6 +43,9 @@ public class InviteServiceTests {
     private UserRepository userRepository;
 
     @Mock
+    private ActivityLogRepository activityLogRepository;
+
+    @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
@@ -55,6 +59,7 @@ public class InviteServiceTests {
         BoardService boardService = new BoardService(
             boardRevisionService,
             boardRepository,
+            activityLogRepository,
             applicationEventPublisher
         );
 
@@ -62,6 +67,7 @@ public class InviteServiceTests {
             inviteRepository,
             boardRepository,
             userRepository,
+            activityLogRepository,
             boardService
         );
     }
@@ -91,6 +97,7 @@ public class InviteServiceTests {
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
         verify(inviteRepository, never()).save(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -104,6 +111,7 @@ public class InviteServiceTests {
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).save(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -125,6 +133,7 @@ public class InviteServiceTests {
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
         assertEquals(ApiErrorCode.INVITE_USER_ALREADY_INVITED, e.getCode());
         verify(inviteRepository, never()).save(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -147,6 +156,7 @@ public class InviteServiceTests {
         assertEquals(HttpStatus.CONFLICT, e.getStatusCode());
         assertEquals(ApiErrorCode.INVITE_USER_IS_ALREADY_MEMBER, e.getCode());
         verify(inviteRepository, never()).save(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -264,6 +274,7 @@ public class InviteServiceTests {
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).delete(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -296,6 +307,7 @@ public class InviteServiceTests {
 
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(inviteRepository, never()).delete(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test

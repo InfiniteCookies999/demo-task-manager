@@ -5,6 +5,7 @@ import infinitecookies.task.manager.models.BackgroundType;
 import infinitecookies.task.manager.models.entity.Board;
 import infinitecookies.task.manager.models.dto.BoardBackgroundUpdateRequest;
 import infinitecookies.task.manager.models.websock.BackgroundUpdatedEvent;
+import infinitecookies.task.manager.repositories.ActivityLogRepository;
 import infinitecookies.task.manager.repositories.BoardRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,9 @@ public class BoardServiceTests {
     @Mock
     private BoardRevisionService boardRevisionService;
 
+    @Mock
+    private ActivityLogRepository activityLogRepository;
+
     @InjectMocks
     private BoardService boardService;
 
@@ -49,6 +53,7 @@ public class BoardServiceTests {
         verify(boardRepository, never()).findById(any());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
@@ -64,6 +69,7 @@ public class BoardServiceTests {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         verify(boardRevisionService, never()).incrementRevision(any());
         verify(applicationEventPublisher, never()).publishEvent(any());
+        verify(activityLogRepository, never()).save(any());
     }
 
     @Test
