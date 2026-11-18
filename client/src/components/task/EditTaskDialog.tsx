@@ -64,13 +64,13 @@ export default function EditTaskDialog(
   async function saveTask() {
 
     if (!getDescriptionJSON) {
-      // TODO (maddie): this really should not happen but what if it does?
+      console.error("Tried saving task but getDescriptionJSON() is null");
       return;
     }
 
     const description = getDescriptionJSON();
     if (description == null) {
-      // TODO (maddie): this really should not happen but what if it does?
+      console.error("Tried saving task but description JSON is null");
       return;
     }
 

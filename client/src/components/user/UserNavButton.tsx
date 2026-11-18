@@ -44,7 +44,6 @@ export default function UserNavButton({ setBoard }: UserNavButtonProps) {
         className="flex items-center gap-2 text-slate-600 cursor-pointer"
         title={user?.username ?? "Guest"}
         onClick={() => {
-          // TODO (maddie): we may want to synchronize opening.
           fetchInvites();
           setIsMenuOpen((open) => !open);
         }}

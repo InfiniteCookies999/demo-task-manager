@@ -34,12 +34,10 @@ export function useBoardWebSocket(
       },
 
       onStompError: (frame) => {
-        // TODO (maddie): handle
         console.error("STOMP error:", frame.headers["message"]);
       },
 
       onWebSocketError: (error) => {
-        // TODO (maddie): handle.
         console.error("WebSocket error:", error);
       }
 

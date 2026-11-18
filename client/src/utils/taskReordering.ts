@@ -75,8 +75,7 @@ export function reorderTasksInCategoryFromResponse(
 
     const tasks = tasksByCategory[targetCategoryId];
     if (!tasks) {
-      // TODO (maddie): this should probably still reorder source tasks!
-      // Category no longer exists.
+      // Target category no longer exists.
       return tasksByCategory;
     }
 
@@ -101,18 +100,26 @@ export function reorderTasksInCategoryFromResponse(
   const sourceTasks = tasksByCategory[sourceCategoryId];
 
   const movedTask = sourceTasks.find((task) => task.id === movedTaskId);
-  if (movedTask) {
-    movedTask.categoryId = targetCategoryId;
-  }
+  const updatedMovedTask = movedTask
+    ? { ...movedTask, categoryId: targetCategoryId }
+    : null;
 
-  const sourceTasksWithoutMovedTask = movedTask
+  const sourceTasksWithoutMovedTask = updatedMovedTask
     ? sourceTasks.filter((task) => task.id !== movedTaskId)
     : sourceTasks;
   const reorderedSourceTasks = applyPartialReorder(sourceTasksWithoutMovedTask, sourceTaskIds);
 
+  if (!targetTasks) {
+    // Target category no longer exists. We can still apply the source reorder.
+    return {
+      ...tasksByCategory,
+      [sourceCategoryId]: reorderedSourceTasks
+    };
+  }
+
   // It should not be needed to check that the task is not already in the targetTasks because
   // if it came from sourceTasks the expectation is that they are already independent.
-  const targetTasksWithMovedTask = movedTask ? [...targetTasks, movedTask] : targetTasks;
+  const targetTasksWithMovedTask = updatedMovedTask ? [...targetTasks, updatedMovedTask] : targetTasks;
   const reorderedTargetTasks = applyPartialReorder(targetTasksWithMovedTask, targetTaskIds);
 
   return {

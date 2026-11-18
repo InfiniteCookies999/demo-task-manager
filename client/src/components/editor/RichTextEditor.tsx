@@ -125,7 +125,6 @@ function LoadEditorState({ json }: { json: SerializedEditorState | null }) {
       const editorState = editor.parseEditorState(json);
       editor.setEditorState(editorState);
     } catch (error) {
-      // TODO (maddie): better error handling.
       console.error("Failed to load saved description:", error);
     }
   }, [editor, json]);
