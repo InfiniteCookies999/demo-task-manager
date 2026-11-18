@@ -55,7 +55,16 @@ export default function EditTaskAssignees(
 
 
   async function assignToTask(userId: number, username: string) {
-    setAssignees((current) => [...current, { id: userId, username, assigned: true }]);
+    setAssignees((current) => {
+      const existing = current.find((user) => user.id === userId);
+      if (existing) {
+        return current.map((user) => ({
+          ...user, assigned: user.id === userId ? true : user.assigned
+        }));
+      }
+
+      return [...current, { id: userId, username, assigned: true }];
+    });
     setSearchedAssignees((current) => current.map((user) => ({
       ...user, alreadyAssigned: user.id === userId ? true : user.alreadyAssigned
     })));
@@ -149,36 +158,42 @@ export default function EditTaskAssignees(
 
               {searchedAssignees.length > 0 ? (
                 <div className="mt-2">
-                  {searchedAssignees.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      disabled={user.alreadyAssigned}
-                      onClick={() => assignToTask(user.id, user.username)}
-                      className={`
-                        flex w-full items-center justify-between
-                        mt-2 rounded-lg border border-zinc-200
-                        px-4 py-2 text-left
-                        ${
-                          user.alreadyAssigned
-                            ? "bg-zinc-50 text-zinc-400"
-                            : "bg-white hover:bg-sky-100 cursor-pointer"
-                        }
-                      `}
-                    >
-                      <span className="text-lg font-medium">
-                        {user.username}#{user.id}
-                      </span>
+                  {searchedAssignees.map((user) => {
+                    // Local state takes priority.
+                    const existingAssignee = assignees.find((otherUser) => otherUser.id === user.id);
+                    const alreadyAssigned = existingAssignee
+                      ? existingAssignee.assigned
+                      : user.alreadyAssigned;
 
-                      <span className={`text-md font-medium ${
-                        user.alreadyAssigned
-                          ? "text-zinc-400"
-                          : "text-blue-600"
-                      }`}>
-                        {user.alreadyAssigned ? "Already assigned" : "Assign"}
-                      </span>
-                    </button>
-                  ))}
+                    return (
+                      <button
+                        key={user.id}
+                        type="button"
+                        disabled={alreadyAssigned}
+                        onClick={() => assignToTask(user.id, user.username)}
+                        className={`
+                          flex w-full items-center justify-between
+                          mt-2 rounded-lg border border-zinc-200
+                          px-4 py-2 text-left
+                          ${
+                            alreadyAssigned
+                              ? "bg-zinc-50 text-zinc-400"
+                              : "bg-white hover:bg-sky-100 cursor-pointer"
+                          }
+                        `}
+                      >
+                        <span className="text-lg font-medium">
+                          {user.username}#{user.id}
+                        </span>
+
+                        <span className={`text-md font-medium ${
+                          alreadyAssigned ? "text-zinc-400" : "text-blue-600"
+                        }`}>
+                          {alreadyAssigned ? "Already assigned" : "Assign"}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="px-4 pb-2 text-sm text-zinc-500">
